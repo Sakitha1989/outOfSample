@@ -1,0 +1,4 @@
+genID,genBus,genPmax,genCost_a,genCost_b,gen_eps,genStartup,genRamp,genType,gen_flex
+1,1,70,4,10,1,0,1.00E+06,det,f          
+2,2,60,0.4,1,0.1,0,1.00E+06,sto,f           
+3,3,80,8,20,2,0,1.00E+06,det     ,f

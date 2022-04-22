@@ -1,0 +1,5 @@
+bidType,bidID,bidPriceM,bidPriceP
+gen,1,1,1.1
+gen,2,0.1,0.11
+gen,3,2,2.1
+dem,1,0.001,0.0001

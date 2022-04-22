@@ -1,0 +1,3 @@
+lineID,lineSource,lineDestination,linePmax,lineB
+1_2,1,2,25,50
+3_2,3,2,50,50
