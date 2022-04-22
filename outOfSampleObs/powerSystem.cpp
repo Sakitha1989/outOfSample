@@ -71,6 +71,11 @@ bool PowerSystem::readPSData(string inputDir, string sysName) {
 	if (!status)
 		cerr << "Error: Power system could not be read." << endl;
 
+	// read scenario data
+	status = readScenarioData(inputDir + sysName);
+	if (!status)
+		cerr << "Error: Power system could not be read." << endl;
+
 	cout << "Successfully read the data for power system : " << sysName << endl;
 	printSystemSummary();
 	printDoubleLine();
@@ -191,8 +196,10 @@ bool PowerSystem::readGeneratorData(string filePath) {
 		if (!tempgenData.empty()) {
 			if (tempgenData[i][0] == 'd' || tempgenData[i][0] == 'D' || tempgenData[i][0] == 'det')
 				oneGen.data = deterministic;
-			else if (tempgenData[i][0] == 's' || tempgenData[i][0] == 'S' || tempgenData[i][0] == 'sto')
+			else if (tempgenData[i][0] == 's' || tempgenData[i][0] == 'S' || tempgenData[i][0] == 'sto'){
 				oneGen.data = stochastic;
+				numRandomVariables += 1;
+			}
 			else
 				perror("Unknown data type for the generator.\n");
 		}
@@ -267,10 +274,10 @@ bool PowerSystem::readDA_bids(string filePath) {
 	string fname = filePath + "/DAbidData.csv";
 #endif
 
-	/* Read the load data */
+	/* Read the bid data */
 	CSVcontent DAbidData(fname, ',', true);
 
-	/* Extract information for individual load */
+	/* Extract information for individual bid */
 
 	vector<string> tempbidType = DAbidData.getColumn("bidType");
 	vector<double> tempbidID = DAbidData.getColumn("bidID", true);
@@ -306,10 +313,10 @@ bool PowerSystem::readRT_bids(string filePath) {
 	string fname = filePath + "/RTbidData.csv";
 #endif
 
-	/* Read the load data */
+	/* Read the bid data */
 	CSVcontent RTbidData(fname, ',', true);
 
-	/* Extract information for individual load */
+	/* Extract information for individual bid */
 
 	vector<string> tempbidType = RTbidData.getColumn("bidType");
 	vector<double> tempbidID = RTbidData.getColumn("bidID", true);
@@ -337,6 +344,46 @@ bool PowerSystem::readRT_bids(string filePath) {
 	return true;
 }//END readDA_bids()
 
+bool PowerSystem::readScenarioData(string filePath) {
+
+	/* The scenarios are assumed to be in the scenarios.csv file within the inputDir */
+	cout << "Reading scenarios..." << endl;
+#ifdef _WIN32
+	string fname = filePath + "\\scenario.csv";
+#else
+	string fname = filePath + "/scenario.csv";
+#endif
+
+	/* Read the bid data */
+	CSVcontent scenarioData(fname, ',', true);
+
+	/* Extract information for individual bid */
+	numScenarios = (const int)scenarioData.content.size();
+
+	vector<double> tempscenID = scenarioData.getColumn("scenID", true);
+	vector<double> tempscenProb = scenarioData.getColumn("scenProb", true);
+	vector<vector<double>> tempscenarios;
+	for (int i = 0; i < numRandomVariables; i++)
+	{
+		tempscenarios.push_back(scenarioData.getColumn("stoch" + to_string(i+1), true));
+	}
+
+	for (int i = 0; i < numScenarios; i++) {
+		Scenario scen;
+
+		if (!tempscenID.empty()) scen.ID = tempscenID[i];
+		if (!tempscenProb.empty()) scen.probability = tempscenProb[i];
+		for (int j = 0; j < numRandomVariables; j++)
+		{
+			scen.ScenarioOutputs.push_back(tempscenarios[j][i]);
+		}
+
+		scenarios.push_back(scen);
+	}
+	
+	return true;
+}
+
 void PowerSystem::printSystemSummary() {
 
 	printLine();
@@ -348,6 +395,7 @@ void PowerSystem::printSystemSummary() {
 	cout << "\tNumber of day-ahead dem bids	= " << numDAdemBids << endl;
 	cout << "\tNumber of real-time gen bids	= " << numRTgenBids << endl;
 	cout << "\tNumber of real-time dem bids	= " << numRTdemBids << endl;
+	cout << "\tNumber of scenarios		= " << numScenarios << endl;
 }
 
 Generator::Generator() {

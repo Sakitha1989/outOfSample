@@ -94,31 +94,25 @@ struct solnType {
 
 class ClearingModel {
 public:
-	ClearingModel(PowerSystem sys, bool isStocModel);
+	ClearingModel(PowerSystem sys);
 
 	bool solve(PowerSystem sys, string type);
 	void exportModel(string fname);
 
 	string name;
-	int numPeriods;
-
 
 	IloEnv		env;
 	IloModel	model;
 	IloCplex	cplex;
 
 	/* Decision variables, constraints and random variables */
-	IloArray < IloArray <IloNumVarArray> > DAgen, DAx, DAdem, DAflow, DAtheta;
-	IloArray < IloArray <IloNumVarArray> > RTgen, RTx, RTdem, RTflow, RTtheta, RTetaP, RTetaM;
-	vector<int> rvIdx;
+	IloArray<IloNumVarArray> DAgen, DAdem, DAflow, DAtheta;
+	IloArray<IloNumVarArray> RTgen, RTdem, RTflow, RTtheta, RTetaP, RTetaM;
 
-	IloArray<IloArray<IloRangeArray>> DAflowBalance, DAxdiff, DAdc, DAru, DArd, DAgbu, DAgbd, DAdbu, DAdbd, DArefAngle;
-	IloArray<IloArray<IloRangeArray>> RTflowBalance, RTxdiff, RTdc, RTru, RTrd, RTgbu, RTgbd, RTdbu, RTdbd, RTdgP, RTdgM, RTddP, RTddM, RTga, RTda, nonAnticipative, RTrefAngle, RTinflex;
+	IloArray<IloRangeArray> DAflowBalance, DAdcApproximation, DArefAngle;
+	IloArray<IloRangeArray> RTflowBalance, RTdcApproximation, RTrefAngle, genPositive, genNegative, demPositive, demNegative, stochGen, inflexGen;
 
 	IloObjective obj;
-
-	//bidsType bidDA, bidRT;
-	//void readBids(PowerSystem sys, string filePath, string sysName, string fileType, vector<vector<oneBid>> &genBids, vector<vector<oneBid>> &demBids, vector<vector<oneBid>> &lineBids, vector<vector<oneBid>> &thetaBids);
 
 private:
 	vector<vector<vector<double>>> getSoln(int N, int T, int L, IloArray < IloArray <IloNumVarArray> > x);

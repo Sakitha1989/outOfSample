@@ -131,6 +131,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="outOfSampleObs.cpp" />
     <ClCompile Include="powerSystem.cpp" />
+    <ClCompile Include="setup.cpp" />
     <ClCompile Include="utilities.cpp" />
   </ItemGroup>
   <ItemGroup>

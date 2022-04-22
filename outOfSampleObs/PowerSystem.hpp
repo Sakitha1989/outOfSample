@@ -152,6 +152,16 @@ struct RTbid {
 	double	priceP;
 };
 
+class Scenario {
+
+public:
+	Scenario() = default;
+
+	int				ID;
+	double			probability;
+	vector<double>	ScenarioOutputs;
+};
+
 class PowerSystem {
 
 public:
@@ -168,9 +178,9 @@ public:
 	int numDAdemBids;
 	int numRTgenBids;
 	int numRTdemBids;
-
 	int numScenarios;
-	int numRandomVariables;
+
+	int numRandomVariables = 0;
 
 	double VOLL = 1000.0;
 	double baseKV = 100;
@@ -183,10 +193,7 @@ public:
 	vector<DAbid>       demDA_bids;
 	vector<RTbid>       genRT_bids;
 	vector<RTbid>       demRT_bids;
-
-	//vector<Generator> renewable, conventional;	/* list of renewable and conventional generator */
-
-	//TSdata loadTS, windTS, solarTS;			/* list of all associated time series */
+	vector<Scenario>    scenarios;
 
 private:
 	bool readPSData(string inputDir, string sysName);
@@ -196,6 +203,7 @@ private:
 	bool readLoadData(string filePath);
 	bool readDA_bids(string filePath);
 	bool readRT_bids(string filePath);
+	bool readScenarioData(string filePath);
 
 	void printSystemSummary();
 
