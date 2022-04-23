@@ -10,7 +10,7 @@
 #include "PowerSystem.hpp"
 #include "outOfSampleObs.hpp"
 
-void outOfSampleAlg(PowerSystem sys, CSVcontent scenarioData, string inputDir, ofstream &output_file, double incumbent_deviation, double dual_deviation, int iteration_num, int incumbent_index) {
+void outOfSampleAlg(PowerSystem sys, string inputDir, ofstream &output_file, double incumbent_deviation, double dual_deviation, int iteration_num, int incumbent_index) {
 
 	vector<double> NA_dual;
 	for (int i = 0; i < (sys.numGenerators + sys.numLoads); i++)
@@ -86,7 +86,7 @@ void outOfSampleAlg(PowerSystem sys, CSVcontent scenarioData, string inputDir, o
 //			}
 //#else
 //			if (it < M.bidDA.demBids[t].size()) {
-//				dayAheadCost -= weight * M.bidDA.demBids[t][it].price*M.DAdem[scen][i][t];
+//				dayAheadCost -= weight * M.bidDA.demBids[t][it].price*M.DAdem[i][t];
 //			}
 //#endif
 //		}

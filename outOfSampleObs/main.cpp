@@ -25,7 +25,7 @@ int main(int argc, const char *argv[]) {
 	PowerSystem ps(inputDir, sysName);
 
 	/* Setup scenario tree: assuming only the renewables are uncertain. */
-	CSVcontent scenarioData = readScenario(inputDir, sysName, true);
+	//CSVcontent scenarioData = readScenario(inputDir, sysName, true);
 	//ScenarioTree tree(0, numScen, numStage, ps.numRenewables, scenarioData);
 	//ClearingModel daModel = setupDA(ps, tree, inputDir);
 
@@ -36,7 +36,7 @@ int main(int argc, const char *argv[]) {
 	int iteration_num = 10;
 	int incumbent_index = 0;
 
-	outOfSampleAlg(ps, scenarioData, inputDir, output_file, incumbent_deviation, dual_deviation, iteration_num, incumbent_index);
+	outOfSampleAlg(ps, inputDir, output_file, incumbent_deviation, dual_deviation, iteration_num, incumbent_index);
 
 	return 0;
 }//END main()
@@ -216,15 +216,15 @@ void printHelpMenu() {
 //	cplex.exportModel(("./outputDir/" + fname).c_str());
 //}
 
-CSVcontent readScenario(string inputDir, string sysName, bool readFile) {
-
-	/* The scenarios are assumed to be in the scenarios.csv file within the inputDir */
-	cout << "Reading scenarios..." << endl;
-#ifdef _WIN32
-	string fname = inputDir + sysName + "\\scenario.csv";
-#else
-	string fname = inputDir + sysName + "/scenario.csv";
-#endif
-	CSVcontent scenarioData(fname, ',', true);
-	return scenarioData;
-}
+//CSVcontent readScenario(string inputDir, string sysName, bool readFile) {
+//
+//	/* The scenarios are assumed to be in the scenarios.csv file within the inputDir */
+//	cout << "Reading scenarios..." << endl;
+//#ifdef _WIN32
+//	string fname = inputDir + sysName + "\\scenario.csv";
+//#else
+//	string fname = inputDir + sysName + "/scenario.csv";
+//#endif
+//	CSVcontent scenarioData(fname, ',', true);
+//	return scenarioData;
+//}

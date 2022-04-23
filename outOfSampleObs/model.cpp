@@ -23,49 +23,49 @@ void subproblem(PowerSystem sys, vector<double> NA_dual, string inputDir, ofstre
 		subproblemModel.name = "subproblem";
 
 		/* Initialize for first-stage component addition */
-		subproblemModel.DAgen = IloArray<IloNumVarArray>(subproblemModel.env, 1);
-		subproblemModel.DAdem = IloArray<IloNumVarArray>(subproblemModel.env, 1);
-		subproblemModel.DAflow = IloArray<IloNumVarArray>(subproblemModel.env, 1);
-		subproblemModel.DAtheta = IloArray<IloNumVarArray>(subproblemModel.env, 1);
+		subproblemModel.DAgen = IloNumVarArray(subproblemModel.env);
+		subproblemModel.DAdem = IloNumVarArray(subproblemModel.env);
+		subproblemModel.DAflow = IloNumVarArray(subproblemModel.env);
+		subproblemModel.DAtheta = IloNumVarArray(subproblemModel.env);
 
-		subproblemModel.DAflowBalance = IloArray<IloRangeArray>(subproblemModel.env, 1);
-		subproblemModel.DAdcApproximation = IloArray<IloRangeArray>(subproblemModel.env, 1);
-		subproblemModel.DArefAngle = IloArray<IloRangeArray>(subproblemModel.env, 1);
+		subproblemModel.DAflowBalance = IloRangeArray(subproblemModel.env);
+		subproblemModel.DAdcApproximation = IloRangeArray(subproblemModel.env);
+		subproblemModel.DArefAngle = IloRangeArray(subproblemModel.env);
 
 		/* Initialize the anticipative stage components */
-		subproblemModel.RTgen = IloArray<IloNumVarArray>(subproblemModel.env, 1);
-		subproblemModel.RTdem = IloArray<IloNumVarArray>(subproblemModel.env, 1);
-		subproblemModel.RTflow = IloArray<IloNumVarArray>(subproblemModel.env, 1);
-		subproblemModel.RTtheta = IloArray<IloNumVarArray>(subproblemModel.env, 1);
-		subproblemModel.RTetaP = IloArray<IloNumVarArray>(subproblemModel.env, 1);
-		subproblemModel.RTetaM = IloArray<IloNumVarArray>(subproblemModel.env, 1);
+		subproblemModel.RTgen = IloNumVarArray(subproblemModel.env);
+		subproblemModel.RTdem = IloNumVarArray(subproblemModel.env);
+		subproblemModel.RTflow = IloNumVarArray(subproblemModel.env);
+		subproblemModel.RTtheta = IloNumVarArray(subproblemModel.env);
+		subproblemModel.RTetaGenP = IloNumVarArray(subproblemModel.env);
+		subproblemModel.RTetaGenM = IloNumVarArray(subproblemModel.env);
+		subproblemModel.RTetaDemP = IloNumVarArray(subproblemModel.env);
+		subproblemModel.RTetaDemM = IloNumVarArray(subproblemModel.env);
 
-		subproblemModel.RTflowBalance = IloArray<IloRangeArray>(subproblemModel.env, 1);
-		subproblemModel.RTdcApproximation = IloArray<IloRangeArray>(subproblemModel.env, 1);
-		subproblemModel.RTrefAngle = IloArray<IloRangeArray>(subproblemModel.env, 1);
-		subproblemModel.genPositive = IloArray<IloRangeArray>(subproblemModel.env, 1);
-		subproblemModel.genNegative = IloArray<IloRangeArray>(subproblemModel.env, 1);
-		subproblemModel.demPositive = IloArray<IloRangeArray>(subproblemModel.env, 1);
-		subproblemModel.demNegative = IloArray<IloRangeArray>(subproblemModel.env, 1);
-		subproblemModel.stochGen = IloArray<IloRangeArray>(subproblemModel.env, 1);
-		subproblemModel.inflexGen = IloArray<IloRangeArray>(subproblemModel.env, 1);
+		subproblemModel.RTflowBalance = IloRangeArray(subproblemModel.env);
+		subproblemModel.RTdcApproximation = IloRangeArray(subproblemModel.env);
+		subproblemModel.RTrefAngle = IloRangeArray(subproblemModel.env);
+		subproblemModel.genPositive = IloRangeArray(subproblemModel.env);
+		subproblemModel.genNegative = IloRangeArray(subproblemModel.env);
+		subproblemModel.demPositive = IloRangeArray(subproblemModel.env);
+		subproblemModel.demNegative = IloRangeArray(subproblemModel.env);
+		subproblemModel.stochGen = IloRangeArray(subproblemModel.env);
+		subproblemModel.inflexGen = IloRangeArray(subproblemModel.env);
 
 
-		//detVariables(sys, subproblemModel, scenID);
-		//detConstraints(sys, subproblemModel, scenID);
-		//detObjective(sys, subproblemModel, prob, scenID);
+		detVariables(sys, subproblemModel);
+		detConstraints(sys, subproblemModel);
+		detObjective(sys, subproblemModel, NA_dual);
 
-		//lagrangian(sys, subproblemModel, prob, scenID, NA_dual);
+		stocVariables(sys, subproblemModel);
+		stocConstraints(sys, subproblemModel, s);
+		stocObjective(sys, subproblemModel);
 
-		//stocVariables(sys, subproblemModel, scenID);
-		//stocConstraints(sys, subproblemModel, scenID, parentID, observ);
-		//stocObjective(sys, subproblemModel, prob, scenID);
-
-		//subproblemModel.exportModel("subproblemModel.lp");
+		subproblemModel.exportModel(sys, "subproblemModel.lp");
 
 
 		/* solve the model and obtain solutions */
-		//subproblemModel.solve(sys, config.type);
+		subproblemModel.solve();
 
 
 		//soln.push_back(getSolution(subproblemModel, sys, true, 1));
@@ -88,7 +88,7 @@ ClearingModel::ClearingModel(PowerSystem sys) {
 
 }// ClearingModel constructor ()
 
-bool ClearingModel::solve(PowerSystem sys, string type) {
+bool ClearingModel::solve() {
 
 	try {
 
@@ -103,6 +103,6 @@ bool ClearingModel::solve(PowerSystem sys, string type) {
 	}
 }
 
-void ClearingModel::exportModel(string fname) {
-	cplex.exportModel((".//outputDir//" + fname).c_str());
+void ClearingModel::exportModel(PowerSystem sys, string fname) {
+	cplex.exportModel(("..\\outputData\\" + sys.name + "\\" + fname).c_str());
 }

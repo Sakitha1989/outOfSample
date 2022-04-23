@@ -32,20 +32,6 @@ using namespace std;
 
 #define NAMESIZE 32
 
-#define SAVE_FILES
-
-// Objective
-#undef PAYMENT_MODEL /*  */
-#undef PENALTY_MODEL /* all deviations are penalized */
-#define RT_PAYMENT_MODEL /* Only real-time payments considered along with etas */
-
-// Flow balance
-#undef RT_FLOW /* real-time flow balance equation is setup using RT variables */
-#define DIFF_FLOW /* real-time flow balance equation is setup as the difference between the RT and DA quantities */
-#undef DIFF_ETA /* real-time flow balance equation is setup using eta variables */
-
-#undef PENALTY_MODEL /* penalty objective function. every devation is penalized */
-
 struct onePrimal {
 	vector<vector<vector<double>>> DAgen;
 	vector<vector<vector<double>>> DAdem;
@@ -96,8 +82,8 @@ class ClearingModel {
 public:
 	ClearingModel(PowerSystem sys);
 
-	bool solve(PowerSystem sys, string type);
-	void exportModel(string fname);
+	bool solve();
+	void exportModel(PowerSystem sys, string fname);
 
 	string name;
 
@@ -106,11 +92,11 @@ public:
 	IloCplex	cplex;
 
 	/* Decision variables, constraints and random variables */
-	IloArray<IloNumVarArray> DAgen, DAdem, DAflow, DAtheta;
-	IloArray<IloNumVarArray> RTgen, RTdem, RTflow, RTtheta, RTetaP, RTetaM;
+	IloNumVarArray DAgen, DAdem, DAflow, DAtheta;
+	IloNumVarArray RTgen, RTdem, RTflow, RTtheta, RTetaGenP, RTetaGenM, RTetaDemP, RTetaDemM;
 
-	IloArray<IloRangeArray> DAflowBalance, DAdcApproximation, DArefAngle;
-	IloArray<IloRangeArray> RTflowBalance, RTdcApproximation, RTrefAngle, genPositive, genNegative, demPositive, demNegative, stochGen, inflexGen;
+	IloRangeArray DAflowBalance, DAdcApproximation, DArefAngle;
+	IloRangeArray RTflowBalance, RTdcApproximation, RTrefAngle, genPositive, genNegative, demPositive, demNegative, stochGen, inflexGen;
 
 	IloObjective obj;
 
@@ -121,21 +107,17 @@ private:
 /* main.cpp */
 void parseCmdLine(int argc, const char *argv[], string &inputDir, string &sysName);
 void printHelpMenu();
-CSVcontent readScenario(string inputDir, string sysName, bool readFile);
+//CSVcontent readScenario(string inputDir, string sysName, bool readFile);
 
 /* setup.cpp */
-//void detVariables(PowerSystem sys, ClearingModel &M, int scen);
-//void detConstraints(PowerSystem sys, ClearingModel &M, int scen);
-//void detObjective(PowerSystem sys, ClearingModel &M, double weight, int scen);
-//void detObjective_expanded(PowerSystem sys, ClearingModel &M, double weight, int scen);
-//void stocVariables(PowerSystem sys, ClearingModel &M, int scen);
-//void stocConstraints(PowerSystem sys, ClearingModel &M, int scen, int parentScen, vector<vector<double>> observ);
-//void stocObjective(PowerSystem sys, ClearingModel &M, double weight, int scen);
-//void stocObjective_expanded(PowerSystem sys, ClearingModel &M, double weight, int scen);
-//void nonanticipativeMeanVector(PowerSystem sys, ClearingModel &M, ScenarioTree tree);
-//void nonanticipativeStateVector(PowerSystem sys, ClearingModel &M, ScenarioTree tree);
-//
-///* models.cpp */
+void detVariables(PowerSystem sys, ClearingModel &M);
+void detConstraints(PowerSystem sys, ClearingModel &M);
+void detObjective(PowerSystem sys, ClearingModel &M, vector<double> NA_dual);
+void stocVariables(PowerSystem sys, ClearingModel &M);
+void stocConstraints(PowerSystem sys, ClearingModel &M, int scen);
+void stocObjective(PowerSystem sys, ClearingModel &M);
+
+/* models.cpp */
 //ClearingModel setupDA(PowerSystem sys, ScenarioTree tree, string inputDir);
 //void reviseDA(PowerSystem sys, ScenarioTree tree, ClearingModel daModel, int proNum, CSVcontent scenarioData, solnType soln, bool solext, int scen);
 //solnType sloveDA(PowerSystem sys, ScenarioTree tree, ClearingModel daModel, ofstream &output_file, int scen);

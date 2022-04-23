@@ -22,7 +22,7 @@
 
 #include <ilcplex/ilocplex.h>
 
-void outOfSampleAlg(PowerSystem sys, CSVcontent scenarioData, string inputDir, ofstream &output_file, double incumbent_deviation, double dual_deviation, int iteration_num, int incumbent_index);
+void outOfSampleAlg(PowerSystem sys, string inputDir, ofstream &output_file, double incumbent_deviation, double dual_deviation, int iteration_num, int incumbent_index);
 //void subproblem(PowerSystem sys, ScenarioTree tree, vector<double> NA_dual, string inputDir, ofstream &output_file);
 //void createSubproblem(PowerSystem sys, ClearingModel &scenModel, vector<vector<double>> observ, vector<double> NA_dual, double prob, int scenID, int parentID);
 //void lagrangian(PowerSystem sys, ClearingModel &M, double weight, int scen, vector<double> NA_dual);
