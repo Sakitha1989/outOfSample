@@ -41,7 +41,7 @@ Bounds
  0 <= DAgen(2)#1 <= 60
  0 <= DAgen(3)#2 <= 80
  0 <= RTgen(1)#3 <= 70
- 0 <= RTgen(2)#4 <= 60
+ 0 <= RTgen(2)#4 <= 45
  0 <= RTgen(3)#5 <= 80
  0 <= RTetaGenP(1)#6 <= 70
  0 <= RTetaGenP(2)#7 <= 60

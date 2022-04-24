@@ -135,9 +135,7 @@
     <ClCompile Include="utilities.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="outOfSampleObs.hpp" />
     <ClInclude Include="PowerSystem.hpp" />
-    <ClInclude Include="scenario.hpp" />
     <ClInclude Include="model.hpp" />
     <ClInclude Include="utilities.hpp" />
   </ItemGroup>

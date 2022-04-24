@@ -21,12 +21,6 @@
     <ClInclude Include="PowerSystem.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="scenario.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="outOfSampleObs.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="model.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>

@@ -7,92 +7,92 @@
  *
  */
 
-#include "PowerSystem.hpp"
-#include "outOfSampleObs.hpp"
+#include "model.hpp"
+
 
 void outOfSampleAlg(PowerSystem sys, string inputDir, ofstream &output_file, double incumbent_deviation, double dual_deviation, int iteration_num, int incumbent_index) {
 
-	vector<double> NA_dual;
-	for (int i = 0; i < (sys.numGenerators + sys.numLoads); i++)
+	ClearingModel subproblemModel(sys);
+	vector<solution> soln;
+
+	IloNumArray NA_genDual(subproblemModel.env, sys.numGenerators);
+	IloNumArray NA_demDual(subproblemModel.env, sys.numLoads);
+
+	for (int i = 0; i < (sys.numGenerators); i++)
 	{
-		NA_dual.push_back(0);
+		NA_genDual[i] = 0;
+	}
+	for (int i = 0; i < (sys.numLoads); i++)
+	{
+		NA_demDual[i] = 0;
 	}
 
-	subproblem(sys, NA_dual, inputDir, output_file);
+	subproblem(sys, subproblemModel, NA_genDual, NA_demDual);
+
+	vector<vector<double>> beeta(2, vector<double>(sys.numScenarios));
+	vector<vector<double>> alpha(2, vector<double>(sys.numScenarios));
+
+	for (int s = 0; s < sys.numScenarios; s++) {
+
+		updateObjective(sys, subproblemModel, NA_genDual, NA_demDual, s);
+
+		/* solve the model and obtain solutions */
+		subproblemModel.solve();
+		soln.push_back(getSolution(subproblemModel, sys));
+
+		beeta = calculateBeeta(beeta, sys, soln[s], s);
+		alpha = calculateAlpha(alpha, subproblemModel, sys, soln[s], s, NA_genDual, NA_demDual);
+	}
+
+
 
 }
 
-//void createSubproblem(PowerSystem sys, ClearingModel &subproblemModel, vector<vector<double>> observ, vector<double> NA_dual, double prob, int scenID, int parentID) {
-//
-//	solnType soln;
-//
-//	detVariables(sys, subproblemModel, scenID);
-//	detConstraints(sys, subproblemModel, scenID);
-//	detObjective(sys, subproblemModel, prob, scenID);
-//
-//	lagrangian(sys, subproblemModel, prob, scenID, NA_dual);
-//
-//	stocVariables(sys, subproblemModel, scenID);
-//	stocConstraints(sys, subproblemModel, scenID, parentID, observ);
-//	stocObjective(sys, subproblemModel, prob, scenID);
-//
-//#if defined (SAVE_FILES)
-//	subproblemModel.exportModel("subproblemModel.lp");
-//#endif
-//
-//}//END scenarioProblem()
+vector<vector<double>> calculateBeeta(vector<vector<double>> beeta, PowerSystem sys, solution soln, int scen) {
 
-//void lagrangian(PowerSystem sys, ClearingModel &M, double weight, int scen, vector<double> NA_dual) {
-//
-//	/***** Objective function *****/
-//	IloExpr lagrangianCost(M.env);
-//	lagrangianCost = M.obj.getExpr();
-//	M.model.remove(M.obj);
-//
-//	lagrangianCost += 0.0;
-//		for (int g = 0; g < sys.numGenerators; g++) {
-//
-//			int it = 0;
-//			while (it < M.bidDA.genBids[t].size())
-//			{
-//				if (M.bidDA.genBids[t][it].ID == sys.generators[g].id)
-//				{
-//					break;
-//				}
-//				it++;
-//			}
-//
-//#if defined (RT_PAYMENT_MODEL)
-//			if (it < M.bidDA.genBids[t].size()) {
-//				lagrangianCost -= weight * NA_dual[it] * M.DAgen[0][it][t];
-//			}
-//#endif
-//		}
-//		for (int d = 0; d < sys.numLoads; d++) {
-//
-//			int it = 0;
-//			while (it < M.bidDA.demBids[t].size())
-//			{
-//				if (M.bidDA.demBids[t][it].ID == sys.loads[d].id)
-//				{
-//					break;
-//				}
-//				it++;
-//			}
-//
-//#if defined (RT_PAYMENT_MODEL)
-//			if (it < M.bidDA.demBids[t].size()) {
-//				lagrangianCost -= weight * NA_dual[sys.numGenerators + it] * M.DAdem[0][it][t];
-//			}
-//#else
-//			if (it < M.bidDA.demBids[t].size()) {
-//				dayAheadCost -= weight * M.bidDA.demBids[t][it].price*M.DAdem[i][t];
-//			}
-//#endif
-//		}
-//
-//	M.obj.setExpr(lagrangianCost);
-//	M.model.add(M.obj);
-//	lagrangianCost.end();
-//
-//}//END detObjective()
+	for (int g = 0; g < sys.numGenerators; g++)
+	{
+		beeta[0][scen] += sys.scenarios[scen].probability * soln.x.DAgen[g];
+		beeta[0][scen] += sys.scenarios[scen].probability * soln.x.RTgen[g];
+		beeta[0][scen] += sys.scenarios[scen].probability * soln.x.RTetaGenM[g];
+		beeta[0][scen] += sys.scenarios[scen].probability * soln.x.RTetaGenP[g];
+	}
+	for (int d = 0; d < sys.numLoads; d++)
+	{
+		beeta[0][scen] += sys.scenarios[scen].probability * soln.x.DAdem[d];
+		beeta[0][scen] += sys.scenarios[scen].probability * soln.x.RTdem[d];
+		beeta[0][scen] += sys.scenarios[scen].probability * soln.x.RTetaDemM[d];
+		beeta[0][scen] += sys.scenarios[scen].probability * soln.x.RTetaDemP[d];
+	}
+	for (int l = 0; l < sys.numLines; l++)
+	{
+		beeta[0][scen] += sys.scenarios[scen].probability * soln.x.DAflow[l];
+		beeta[0][scen] += sys.scenarios[scen].probability * soln.x.RTflow[l];
+	}
+	for (int b = 0; b < sys.numBuses; b++)
+	{
+		beeta[0][scen] += sys.scenarios[scen].probability * soln.x.DAtheta[b];
+		beeta[0][scen] += sys.scenarios[scen].probability * soln.x.RTtheta[b];
+	}
+
+	return beeta;
+}
+
+vector<vector<double>> calculateAlpha(vector<vector<double>> alpha, ClearingModel M, PowerSystem sys, solution soln, int scen, IloNumArray NA_genDual, IloNumArray NA_demDual) {
+
+	double expr = 0;
+
+	for (int g = 0; g < sys.numGenerators; g++)
+	{
+		expr += NA_genDual[g] * soln.x.DAgen[g];
+	}
+	for (int d = 0; d < sys.numLoads; d++)
+	{
+		expr += NA_demDual[d] * soln.x.DAdem[d];
+	}
+
+	alpha[0][scen] = sys.scenarios[scen].probability * (soln.obj + expr);
+
+	return alpha;
+
+}

@@ -198,14 +198,16 @@ bool PowerSystem::readGeneratorData(string filePath) {
 				oneGen.data = deterministic;
 			else if (tempgenData[i][0] == 's' || tempgenData[i][0] == 'S' || tempgenData[i][0] == 'sto'){
 				oneGen.data = stochastic;
-				numRandomVariables += 1;
+				numRandomVariables++;
 			}
 			else
 				perror("Unknown data type for the generator.\n");
 		}
 		if (!tempgenType.empty()) {
-			if (tempgenType[i][0] == 'd' || tempgenType[i][0] == 'D')
+			if (tempgenType[i][0] == 'd' || tempgenType[i][0] == 'D') {
 				oneGen.type = oneGen.THERMAL;
+				numInflexGens++;
+			}
 			else if (tempgenType[i][0] == 'f' || tempgenType[i][0] == 'F')
 				oneGen.type = oneGen.OTHER;
 			else

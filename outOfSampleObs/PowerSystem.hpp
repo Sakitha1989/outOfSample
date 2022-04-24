@@ -180,6 +180,8 @@ public:
 	int numRTdemBids;
 	int numScenarios;
 
+	int numInflexGens;
+
 	int numRandomVariables = 0;
 
 	double VOLL = 1000.0;

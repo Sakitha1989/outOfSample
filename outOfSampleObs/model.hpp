@@ -7,6 +7,8 @@
  *
  * Please send your comments or bug report to harsha (at) smu (dot) edu
  *
+ *  Updated on: Apr 21, 2022
+ *          by: Sakitha Ariyarathne
  */
 
 #ifndef STOCCLEARING_HPP_
@@ -22,9 +24,7 @@
 #include <cmath>
 
 #include "PowerSystem.hpp"
-#include "scenario.hpp"
 #include "utilities.hpp"
-#include "outOfSampleObs.hpp"
 
 #include <ilcplex/ilocplex.h>
 
@@ -33,49 +33,40 @@ using namespace std;
 #define NAMESIZE 32
 
 struct onePrimal {
-	vector<vector<vector<double>>> DAgen;
-	vector<vector<vector<double>>> DAdem;
-	vector<vector<vector<double>>> DAflow;
-	vector<vector<vector<double>>> DAtheta;
-	vector<vector<vector<double>>> RTgen;
-	vector<vector<vector<double>>> RTx;
-	vector<vector<vector<double>>> RTdem;
-	vector<vector<vector<double>>> RTflow;
-	vector<vector<vector<double>>> RTtheta;
-	vector<vector<vector<double>>> RTetaP;
-	vector<vector<vector<double>>> RTetaM;
+	vector<double> DAgen;
+	vector<double> DAdem;
+	vector<double> DAflow;
+	vector<double> DAtheta;
+
+	vector<double> RTgen;
+	vector<double> RTdem;
+	vector<double> RTflow;
+	vector<double> RTtheta;
+	vector<double> RTetaGenP;
+	vector<double> RTetaGenM;
+	vector<double> RTetaDemP;
+	vector<double> RTetaDemM;
 };
 
 struct oneDual {
-	vector<vector<vector<double>>> DAflowBalance;
-	vector<vector<vector<double>>> DAdc;
-	vector<vector<vector<double>>> DAru;
-	vector<vector<vector<double>>> DAgbu;
-	vector<vector<vector<double>>> DAgbd;
-	vector<vector<vector<double>>> DAdbu;
-	vector<vector<vector<double>>> DAdbd;
+	vector<double> DAflowBalance;
+	vector<double> DAdcApproximation;
+	vector<double> DArefAngle;
 
-	vector<vector<vector<double>>> 	naConst;
-	vector<vector<vector<double>>> 	RTflowBalance;
-	vector<vector<vector<double>>> 	RTdc;
-	vector<vector<vector<double>>> 	RTru;
-	vector<vector<vector<double>>> 	RTgbu;
-	vector<vector<vector<double>>> 	RTgbd;
-	vector<vector<vector<double>>> 	RTdbu;
-	vector<vector<vector<double>>> 	RTdbd;
-	vector<vector<vector<double>>> 	RTdgP;
-	vector<vector<vector<double>>> 	RTdgM;
-	vector<vector<vector<double>>> 	RTddP;
-	vector<vector<vector<double>>> 	RTddM;
-	vector<vector<vector<double>>> 	RTga;
-	vector<vector<vector<double>>> 	RTda;
+	vector<double> 	RTflowBalance;
+	vector<double> 	RTdcApproximation;
+	vector<double> 	RTrefAngle;
+	vector<double> 	genPositive;
+	vector<double> 	genNegative;
+	vector<double> 	demPositive;
+	vector<double> 	demNegative;
+	vector<double> 	inflexGen;
 };
 
-struct solnType {
+struct solution {
 	double	  obj;
 	onePrimal x;
 	oneDual   pi;
-	vector<double> rd;
 };
 
 class ClearingModel {
@@ -96,93 +87,31 @@ public:
 	IloNumVarArray RTgen, RTdem, RTflow, RTtheta, RTetaGenP, RTetaGenM, RTetaDemP, RTetaDemM;
 
 	IloRangeArray DAflowBalance, DAdcApproximation, DArefAngle;
-	IloRangeArray RTflowBalance, RTdcApproximation, RTrefAngle, genPositive, genNegative, demPositive, demNegative, stochGen, inflexGen;
+	IloRangeArray RTflowBalance, RTdcApproximation, RTrefAngle, genPositive, genNegative, demPositive, demNegative, inflexGen;
 
 	IloObjective obj;
-
-private:
-	vector<vector<vector<double>>> getSoln(int N, int T, int L, IloArray < IloArray <IloNumVarArray> > x);
 };
 
 /* main.cpp */
 void parseCmdLine(int argc, const char *argv[], string &inputDir, string &sysName);
 void printHelpMenu();
-//CSVcontent readScenario(string inputDir, string sysName, bool readFile);
 
 /* setup.cpp */
-void detVariables(PowerSystem sys, ClearingModel &M);
-void detConstraints(PowerSystem sys, ClearingModel &M);
-void detObjective(PowerSystem sys, ClearingModel &M, vector<double> NA_dual);
-void stocVariables(PowerSystem sys, ClearingModel &M);
-void stocConstraints(PowerSystem sys, ClearingModel &M, int scen);
+void addVariables(PowerSystem sys, ClearingModel &M);
+void addConstraints(PowerSystem sys, ClearingModel &M);
+void detObjective(PowerSystem sys, ClearingModel &M, IloNumArray NA_genDual, IloNumArray NA_demDual);
 void stocObjective(PowerSystem sys, ClearingModel &M);
+void updateObjective(PowerSystem sys, ClearingModel &M, IloNumArray NA_genDual, IloNumArray NA_demDual, int scen);
+
+/* outOfSampleObs.cpp */
+void outOfSampleAlg(PowerSystem sys, string inputDir, ofstream &output_file, double incumbent_deviation, double dual_deviation, int iteration_num, int incumbent_index);
+vector<vector<double>> calculateBeeta(vector<vector<double>> beeta, PowerSystem sys, solution soln, int scen);
+vector<vector<double>> calculateAlpha(vector<vector<double>> beeta, ClearingModel subproblemModel, PowerSystem sys, solution soln, int scen, IloNumArray NA_genDual, IloNumArray NA_demDual);
 
 /* models.cpp */
-//ClearingModel setupDA(PowerSystem sys, ScenarioTree tree, string inputDir);
-//void reviseDA(PowerSystem sys, ScenarioTree tree, ClearingModel daModel, int proNum, CSVcontent scenarioData, solnType soln, bool solext, int scen);
-//solnType sloveDA(PowerSystem sys, ScenarioTree tree, ClearingModel daModel, ofstream &output_file, int scen);
-//
-//void formDAproblem(PowerSystem sys, ScenarioTree tree, string inputDir, ofstream &output_file);
-//void scenarioProblem(PowerSystem sys, ClearingModel &scenModel, vector<vector<double>> observ, double prob, int scenID, int parentID);
-//void meanProblem(PowerSystem sys, vector<vector<double>> observ, ScenarioTree tree, string inputDir, ofstream &output_file);
-//void evalProblem(PowerSystem sys, ScenarioTree tree, int scen, string inputDir, ofstream &output_file);
-//void waitNsee(PowerSystem sys, ScenarioTree tree, string inputDir, ofstream &output_file);
-//void twoSLProblem(PowerSystem sys, ScenarioTree tree, string inputDir, ofstream &output_file, int i);
-//void twoSLProblem_expanded(PowerSystem sys, ScenarioTree tree, string inputDir, ofstream &output_file);
-//void slpProblemMeanVector(PowerSystem sys, ScenarioTree tree, string inputDir, ofstream &output_file);
-//void slpProblemStateVector(PowerSystem sys, ScenarioTree tree, string inputDir, ofstream &output_file);
-//
-///* solution.cpp */
-//void duals(solnType soln, ClearingModel M);
-//
-//solnType getSolution(ClearingModel M, PowerSystem sys, bool isTwoStage, int numScenarios);
-//
-//void printSolution(ClearingModel M, PowerSystem sys, ScenarioTree tree, bool isTwoSatge, ofstream &output_file);
-//void printPrimalSolutions(ClearingModel M, PowerSystem sys, ScenarioTree tree, bool status, bool redeucedCost, bool isTwoStage, ofstream &output_file);
-//void printDualSolutions(ClearingModel M, PowerSystem sys, ScenarioTree tree, bool isTwoStage, ofstream &output_file);
-//
-//void printHeader(PowerSystem sys, string obj, ofstream &output_file);
-//
-//void printGenNames(PowerSystem sys, ofstream &output_file);
-//void printLoadNames(PowerSystem sys, ofstream &output_file);
-//void printLineNames(PowerSystem sys, ofstream &output_file);
-//void printBusNames(PowerSystem sys, ofstream &output_file);
-//
-//void printGeneration(ClearingModel M, PowerSystem sys, int scen, bool status, bool redeucedCost, bool isTwoStage, ofstream &output_file);
-//void printLoad(ClearingModel M, PowerSystem sys, int scen, bool status, bool redeucedCost, bool isTwoStage, ofstream &output_file);
-//void printLine(ClearingModel M, PowerSystem sys, int scen, bool status, bool redeucedCost, bool isTwoStage, ofstream &output_file);
-//void printAngle(ClearingModel M, PowerSystem sys, int scen, bool status, bool redeucedCost, bool isTwoStage, ofstream &output_file);
-//
-//void printFlowBalance(ClearingModel M, PowerSystem sys, int scen, bool isTwoStage, ofstream &output_file);
-//void printInflex(ClearingModel M, PowerSystem sys, int scen, bool isTwoStage, ofstream &output_file);
-//
-//void getRTNegativeAuxSolutions(ClearingModel M, PowerSystem sys, ScenarioTree tree, ofstream &output_file);
-//void getRTPositiveAuxSolutions(ClearingModel M, PowerSystem sys, ScenarioTree tree, ofstream &output_file);
-//
-//void printNAGen(ClearingModel M, PowerSystem sys, ScenarioTree tree, ofstream &output_file);
-//void printNALoad(ClearingModel M, PowerSystem sys, ScenarioTree tree, ofstream &output_file);
-//
-//void getRTbidPSolStatus(ClearingModel M, PowerSystem sys, bool printHeader, int numScenarios, ScenarioTree tree);
-//void getRTbidMSolStatus(ClearingModel M, PowerSystem sys, bool printHeader, int numScenarios, ScenarioTree tree);
-//void getRTSolStatus(ClearingModel M, PowerSystem sys, int numScenarios);
-//
-//void printHeaders(PowerSystem sys, ofstream &output_file);
-//void printNegAuxDuals(string M, PowerSystem sys, solnType soln, bool isTwoStage, int scen, bool printHeader, ScenarioTree tree, ofstream &output_file);
-//void printPosAuxDuals(string M, PowerSystem sys, solnType soln, bool isTwoStage, int scen, bool printHeader, ScenarioTree tree, ofstream &output_file);
-//void printdcDuals(string modelName, PowerSystem sys, solnType soln, bool isTwoStage, int scen, bool printHeader, ScenarioTree tree);
-//void printruDuals(ClearingModel M, PowerSystem sys, solnType soln, bool isTwoStage, int scen, bool printHeader, ScenarioTree tree);
-//void printgbuDuals(ClearingModel M, PowerSystem sys, solnType soln, bool isTwoStage, int scen, bool printHeader, ScenarioTree tree);
-//void printgbdDuals(ClearingModel M, PowerSystem sys, solnType soln, bool isTwoStage, int scen, bool printHeader, ScenarioTree tree);
-//void printdbuDuals(ClearingModel M, PowerSystem sys, solnType soln, bool isTwoStage, int scen, bool printHeader, ScenarioTree tree);
-//void printdgDuals(ClearingModel M, PowerSystem sys, solnType soln, bool isTwoStage, int scen, bool printHeader, ScenarioTree tree);
-//void printddDuals(ClearingModel M, PowerSystem sys, solnType soln, bool isTwoStage, int scen, bool printHeader, ScenarioTree tree);
-//void printDABoundDuals(ClearingModel M, PowerSystem sys, solnType soln, bool isTwoStage, int scen, bool printHeader, ScenarioTree tree);
-//void printRTBoundDuals(ClearingModel M, PowerSystem sys, solnType soln, bool isTwoStage, int scen, bool printHeader, ScenarioTree tree);
-//void printgaDuals(ClearingModel M, PowerSystem sys, solnType soln, bool isTwoStage, int scen, bool printHeader, ScenarioTree tree);
-//void printGeneration(PowerSystem sys, solnType soln, bool isTwoStage, int scen, bool printHeader, ScenarioTree tree, ofstream &output_file);
-//
-//vector<vector<double>> getPrimal(IloCplex cplex, IloArray <IloNumVarArray> x);
-//vector<vector<double>> getDual(IloCplex cplex, IloArray <IloRangeArray> c);
-//vector<vector<double>> getDual(IloCplex cplex, IloArray <IloRangeArray> c);
+void subproblem(PowerSystem sys, ClearingModel &M, IloNumArray NA_genDual, IloNumArray NA_demDual);
+solution getSolution(ClearingModel M, PowerSystem sys);
+vector<double> getPrimal(IloCplex cplex, IloNumVarArray x);
+vector<double> getDual(IloCplex cplex, IloRangeArray c);
 
 #endif /* STOCCLEARING_HPP_ */
