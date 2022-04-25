@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <string>
 #include <iomanip>
+#include <numeric>
 
 using namespace std;
 
@@ -85,5 +86,12 @@ vector< vector< vector<double> > > createBooleanQuad(int size1, int size2, int s
 
 /* Time series utilities */
 vector<vector<double>> readTS(string fileName);
+
+template<typename T>
+double getAverage(std::vector<T> const& v);
+template<typename T>
+double getMinimum(std::vector<T> const& v);
+template<typename T>
+double getMaximum(std::vector<T> const& v);
 
 #endif /* UTILITIES_HPP_ */

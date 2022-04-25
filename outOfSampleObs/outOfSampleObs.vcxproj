@@ -127,11 +127,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="masterproblemSetup.cpp" />
     <ClCompile Include="model.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="outOfSampleObs.cpp" />
     <ClCompile Include="powerSystem.cpp" />
-    <ClCompile Include="setup.cpp" />
+    <ClCompile Include="subproblemSetup.cpp" />
     <ClCompile Include="utilities.cpp" />
   </ItemGroup>
   <ItemGroup>

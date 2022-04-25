@@ -52,6 +52,26 @@ void subproblem(PowerSystem sys, ClearingModel &M, IloNumArray NA_genDual, IloNu
 
 }//END subproblem
 
+void masterproblem(PowerSystem sys, MasterProblem &M, double sigma) {
+
+	M.name = "master";
+
+	/* Initialize for first-stage component addition */
+	M.nu = IloNumVar(M.env);
+	M.NA_demDual = IloArray<IloNumVarArray>(M.env, sys.numScenarios);
+	M.NA_genDual = IloArray<IloNumVarArray>(M.env, sys.numScenarios);
+
+	/* Initialize the anticipative stage components */
+	M.expectation = IloRangeArray(M.env);
+
+	addMasterVariables(sys, M);
+	addMasterConstraints(sys, M);
+	addMasterObjective(sys, M, sigma);
+
+	M.exportModel(sys, "master.lp");
+
+}//END masterproblem
+
 ClearingModel::ClearingModel(PowerSystem sys) {
 
 	model = IloModel(env);
@@ -82,6 +102,39 @@ bool ClearingModel::solve() {
 }
 
 void ClearingModel::exportModel(PowerSystem sys, string fname) {
+	cplex.exportModel(("..\\outputData\\" + sys.name + "\\" + fname).c_str());
+}
+
+MasterProblem::MasterProblem(PowerSystem sys) {
+
+	model = IloModel(env);
+	cplex = IloCplex(model);
+
+	/* Initialize a dummy objective function */
+	obj = IloMaximize(env, 0.0);
+	model.add(obj);
+
+	cplex.setOut(env.getNullStream());
+	cplex.setWarning(env.getNullStream());
+
+}// ClearingModel constructor ()
+
+bool MasterProblem::solve() {
+
+	try {
+
+		cplex.setParam(cplex.RootAlg, cplex.Primal);
+
+		bool status = cplex.solve();
+		return status;
+	}
+	catch (IloException &e) {
+		cout << e << endl;
+		return false;
+	}
+}
+
+void MasterProblem::exportModel(PowerSystem sys, string fname) {
 	cplex.exportModel(("..\\outputData\\" + sys.name + "\\" + fname).c_str());
 }
 

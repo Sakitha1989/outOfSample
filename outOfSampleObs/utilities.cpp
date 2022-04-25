@@ -289,3 +289,30 @@ vector<double> CSVcontent::getColumn(string colName, bool isNumeric) {
 
 	return colData;
 }
+
+/* Calculate the average of a vector */
+template<typename T>
+double getAverage(std::vector<T> const& v) {
+	if (v.empty()) {
+		return 0;
+	}
+	return std::accumulate(v.begin(), v.end(), 0.0) / v.size();
+}
+
+/* Get the minimum value of a vector */
+template<typename T>
+double getMinimum(std::vector<T> const& v) {
+	if (v.empty()) {
+		return 0;
+	}
+	return *min_element(v.begin(), v.end());
+}
+
+/* Get the maximum value of a vector */
+template<typename T>
+double getMaximum(std::vector<T> const& v) {
+	if (v.empty()) {
+		return 0;
+	}
+	return *max_element(v.begin(), v.end());
+}

@@ -41,7 +41,10 @@
     <ClCompile Include="utilities.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="setup.cpp">
+    <ClCompile Include="subproblemSetup.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="masterproblemSetup.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

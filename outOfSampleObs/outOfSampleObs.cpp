@@ -13,39 +13,55 @@
 void outOfSampleAlg(PowerSystem sys, string inputDir, ofstream &output_file, double incumbent_deviation, double dual_deviation, int iteration_num, int incumbent_index) {
 
 	ClearingModel subproblemModel(sys);
+	MasterProblem master(sys);
 	vector<solution> soln;
 
-	IloNumArray NA_genDual(subproblemModel.env, sys.numGenerators);
-	IloNumArray NA_demDual(subproblemModel.env, sys.numLoads);
+	IloArray<IloNumArray> NA_genDual(subproblemModel.env, sys.numScenarios);
+	IloArray<IloNumArray> NA_demDual(subproblemModel.env, sys.numScenarios);
 
-	for (int i = 0; i < (sys.numGenerators); i++)
-	{
-		NA_genDual[i] = 0;
-	}
-	for (int i = 0; i < (sys.numLoads); i++)
-	{
-		NA_demDual[i] = 0;
+	for (int s = 0; s < sys.numScenarios; s++){
+		NA_demDual[s] = IloNumArray(subproblemModel.env, sys.numGenerators);
+		for (int i = 0; i < (sys.numGenerators); i++){
+			NA_genDual[s][i] = 0;
+		}
+		for (int i = 0; i < (sys.numLoads); i++){
+			NA_demDual[s][i] = 0;
+		}
 	}
 
-	subproblem(sys, subproblemModel, NA_genDual, NA_demDual);
+	subproblem(sys, subproblemModel, NA_genDual[0], NA_demDual[0]);
+	masterproblem(sys, master, dual_deviation);
 
 	vector<vector<double>> beeta(2, vector<double>(sys.numScenarios));
 	vector<vector<double>> alpha(2, vector<double>(sys.numScenarios));
+	vector<double> cut_RHS;
+	double dummy_RHS = 0;
 
-	for (int s = 0; s < sys.numScenarios; s++) {
+	for (int k = 0; k < 2; k++) {
 
-		updateObjective(sys, subproblemModel, NA_genDual, NA_demDual, s);
+		for (int s = 0; s < sys.numScenarios; s++) {
 
-		/* solve the model and obtain solutions */
-		subproblemModel.solve();
-		soln.push_back(getSolution(subproblemModel, sys));
+			updateObjective(sys, subproblemModel, NA_genDual[s], NA_demDual[s], s);
 
-		beeta = calculateBeeta(beeta, sys, soln[s], s);
-		alpha = calculateAlpha(alpha, subproblemModel, sys, soln[s], s, NA_genDual, NA_demDual);
+			/* solve the model and obtain solutions */
+			subproblemModel.solve();
+			soln.push_back(getSolution(subproblemModel, sys));
+
+			beeta = calculateBeeta(beeta, sys, soln[s], s);
+			alpha = calculateAlpha(alpha, subproblemModel, sys, soln[s], s, NA_genDual[s], NA_demDual[s]);
+
+			dummy_RHS += alpha[0][s] - beeta[0][s];
+		}
+
+		cut_RHS.push_back(dummy_RHS);
+
+		if (k > 0){
+			//double l = getMinimum(cut_RHS);
+			//double avg = getAverage(cut_RHS);
+		}
+
+
 	}
-
-
-
 }
 
 vector<vector<double>> calculateBeeta(vector<vector<double>> beeta, PowerSystem sys, solution soln, int scen) {

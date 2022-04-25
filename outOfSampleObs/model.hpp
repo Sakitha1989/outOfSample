@@ -22,6 +22,7 @@
 #include <string>
 #include <map>
 #include <cmath>
+#include <numeric>
 
 #include "PowerSystem.hpp"
 #include "utilities.hpp"
@@ -88,6 +89,29 @@ public:
 
 	IloRangeArray DAflowBalance, DAdcApproximation, DArefAngle;
 	IloRangeArray RTflowBalance, RTdcApproximation, RTrefAngle, genPositive, genNegative, demPositive, demNegative, inflexGen;
+	IloRangeArray cut;
+
+	IloObjective obj;
+};
+
+class MasterProblem {
+public:
+	MasterProblem(PowerSystem sys);
+
+	bool solve();
+	void exportModel(PowerSystem sys, string fname);
+
+	string name;
+
+	IloEnv		env;
+	IloModel	model;
+	IloCplex	cplex;
+
+	/* Decision variables, constraints and random variables */
+	IloArray<IloNumVarArray> NA_genDual, NA_demDual;
+	IloNumVar nu;
+
+	IloRangeArray expectation;
 
 	IloObjective obj;
 };
@@ -96,12 +120,17 @@ public:
 void parseCmdLine(int argc, const char *argv[], string &inputDir, string &sysName);
 void printHelpMenu();
 
-/* setup.cpp */
+/* subproblemSetup.cpp */
 void addVariables(PowerSystem sys, ClearingModel &M);
 void addConstraints(PowerSystem sys, ClearingModel &M);
 void detObjective(PowerSystem sys, ClearingModel &M, IloNumArray NA_genDual, IloNumArray NA_demDual);
 void stocObjective(PowerSystem sys, ClearingModel &M);
 void updateObjective(PowerSystem sys, ClearingModel &M, IloNumArray NA_genDual, IloNumArray NA_demDual, int scen);
+
+/* masterproblemSetup */
+void addMasterVariables(PowerSystem sys, MasterProblem &M);
+void addMasterConstraints(PowerSystem sys, MasterProblem &M);
+void addMasterObjective(PowerSystem sys, MasterProblem &M, double sigma);
 
 /* outOfSampleObs.cpp */
 void outOfSampleAlg(PowerSystem sys, string inputDir, ofstream &output_file, double incumbent_deviation, double dual_deviation, int iteration_num, int incumbent_index);
@@ -110,6 +139,7 @@ vector<vector<double>> calculateAlpha(vector<vector<double>> beeta, ClearingMode
 
 /* models.cpp */
 void subproblem(PowerSystem sys, ClearingModel &M, IloNumArray NA_genDual, IloNumArray NA_demDual);
+void masterproblem(PowerSystem sys, MasterProblem &M, double sigma);
 solution getSolution(ClearingModel M, PowerSystem sys);
 vector<double> getPrimal(IloCplex cplex, IloNumVarArray x);
 vector<double> getDual(IloCplex cplex, IloRangeArray c);

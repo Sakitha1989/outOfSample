@@ -7,7 +7,7 @@ Minimize
       + 2.09999990463257 RTetaGenP(3)#8 - RTetaGenM(1)#9
       - 0.100000001490116 RTetaGenM(2)#10 - 2 RTetaGenM(3)#11
       - 1000 RTdem(1)#13 + 0.00100000004749745 RTetaDemP(1)#14
-      - 0.0000999999974737875 RTetaDemM(1)#15
+      - 0.0000999999974737875 RTetaDemM(1)#15 + 0 cut(0)#26
 Subject To
  DAflowBalance(1)#0:       DAgen(1)#0 - DAflow(1,2)#16  = 0
  DAflowBalance(2)#1:       DAgen(2)#1 - DAdem(1)#12 + DAflow(1,2)#16
@@ -41,7 +41,7 @@ Bounds
  0 <= DAgen(2)#1 <= 60
  0 <= DAgen(3)#2 <= 80
  0 <= RTgen(1)#3 <= 70
- 0 <= RTgen(2)#4 <= 45
+ 0 <= RTgen(2)#4 <= 60
  0 <= RTgen(3)#5 <= 80
  0 <= RTetaGenP(1)#6 <= 70
  0 <= RTetaGenP(2)#7 <= 60
@@ -63,4 +63,5 @@ Bounds
 -3.1451 <= RTtheta(1)#23 <= 3.1451
 -3.1451 <= RTtheta(2)#24 <= 3.1451
 -3.1451 <= RTtheta(3)#25 <= 3.1451
+ -Inf <= cut(0)#26 <= -99767.4214853853
 End
