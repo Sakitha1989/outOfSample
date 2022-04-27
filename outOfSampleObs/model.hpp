@@ -111,9 +111,21 @@ public:
 	IloArray<IloNumVarArray> NA_genDual, NA_demDual;
 	IloNumVar nu;
 
-	IloRangeArray expectation;
+	IloRangeArray expectation, cut;
 
 	IloObjective obj;
+};
+
+enum NAtype {
+	Gen,
+	Dem
+};
+
+struct Beeta {
+	int		ID;
+	int		scenario;
+	NAtype	type;
+	double  value;
 };
 
 /* main.cpp */
@@ -125,17 +137,18 @@ void addVariables(PowerSystem sys, ClearingModel &M);
 void addConstraints(PowerSystem sys, ClearingModel &M);
 void detObjective(PowerSystem sys, ClearingModel &M, IloNumArray NA_genDual, IloNumArray NA_demDual);
 void stocObjective(PowerSystem sys, ClearingModel &M);
-void updateObjective(PowerSystem sys, ClearingModel &M, IloNumArray NA_genDual, IloNumArray NA_demDual, int scen);
+void updateSubproblemObjective(PowerSystem sys, ClearingModel &M, IloNumArray NA_genDual, IloNumArray NA_demDual, int scen);
 
 /* masterproblemSetup */
 void addMasterVariables(PowerSystem sys, MasterProblem &M);
 void addMasterConstraints(PowerSystem sys, MasterProblem &M);
 void addMasterObjective(PowerSystem sys, MasterProblem &M, double sigma);
+void addMasterCut(MasterProblem &M, PowerSystem sys, vector<double> alpha, vector<vector<Beeta>> beeta, int it_count);
 
 /* outOfSampleObs.cpp */
 void outOfSampleAlg(PowerSystem sys, string inputDir, ofstream &output_file, double incumbent_deviation, double dual_deviation, int iteration_num, int incumbent_index);
-vector<vector<double>> calculateBeeta(vector<vector<double>> beeta, PowerSystem sys, solution soln, int scen);
-vector<vector<double>> calculateAlpha(vector<vector<double>> beeta, ClearingModel subproblemModel, PowerSystem sys, solution soln, int scen, IloNumArray NA_genDual, IloNumArray NA_demDual);
+double calculateAlpha(double alpha, ClearingModel subproblemModel, PowerSystem sys, solution soln, int scen, IloNumArray NA_genDual, IloNumArray NA_demDual, int it_count);
+vector<Beeta> calculateBeeta(vector<Beeta> beeta, PowerSystem sys, solution soln, int scen, int it_count);
 
 /* models.cpp */
 void subproblem(PowerSystem sys, ClearingModel &M, IloNumArray NA_genDual, IloNumArray NA_demDual);

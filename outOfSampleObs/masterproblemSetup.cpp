@@ -14,25 +14,25 @@ void addMasterVariables(PowerSystem sys, MasterProblem &M) {
 
 	/* Cut */
 	sprintf_s(elemName, "Cut");
-	M.nu = IloNumVar(M.env, ILOFLOAT);
+	M.nu = IloNumVar(M.env, -IloInfinity, IloInfinity, ILOFLOAT);
 	M.nu.setName(elemName);
 
 	for (int s = 0; s < sys.numScenarios; s++){
 		M.NA_genDual[s] = IloNumVarArray(M.env, sys.numGenerators);
 		for (int g = 0; g < sys.numGenerators; g++) {
 
-			sprintf_s(elemName, "NA_genDual[%d][%d]", s, sys.generators[g].id);
-			M.NA_genDual[s][g] = IloNumVar(M.env, ILOFLOAT);
+			sprintf_s(elemName, "NA_genDual[%d][%d]", sys.generators[g].id, s+1);
+			M.NA_genDual[s][g] = IloNumVar(M.env, -IloInfinity, IloInfinity, ILOFLOAT);
 			M.NA_genDual[s][g].setName(elemName);
 		}
 		M.model.add(M.NA_genDual[s]);
 
 		/* Demand */
-		M.NA_demDual = IloArray<IloNumVarArray>(M.env, sys.numLoads);
+		M.NA_demDual[s] = IloNumVarArray(M.env, sys.numLoads);
 		for (int d = 0; d < sys.numLoads; d++) {
 
-			sprintf_s(elemName, "NA_demDual[%d][%d]", s, sys.loads[d].id);
-			M.NA_demDual[s][d] = IloNumVar(M.env, ILOFLOAT);
+			sprintf_s(elemName, "NA_demDual[%d][%d]", sys.loads[d].id, s+1);
+			M.NA_demDual[s][d] = IloNumVar(M.env, -IloInfinity, IloInfinity, ILOFLOAT);
 			M.NA_demDual[s][d].setName(elemName);
 		}
 		M.model.add(M.NA_demDual[s]);
@@ -43,8 +43,7 @@ void addMasterVariables(PowerSystem sys, MasterProblem &M) {
 void addMasterConstraints(PowerSystem sys, MasterProblem &M) {
 	char elemName[NAMESIZE];
 
-	/* Flow balance equation */
-	M.expectation = IloRangeArray(M.env, sys.numBuses);
+	M.expectation = IloRangeArray(M.env, sys.numGenerators + sys.numLoads);
 
 	for (int g = 0; g < sys.numGenerators; g++) {
 
@@ -69,7 +68,7 @@ void addMasterConstraints(PowerSystem sys, MasterProblem &M) {
 
 		sprintf_s(elemName, "Expectation[%d]", sys.numGenerators + sys.loads[d].id);
 		IloRange tempCon(M.env, 0, expr, 0, elemName);
-		M.expectation[d] = tempCon;
+		M.expectation[sys.numGenerators + d] = tempCon;
 
 		expr.end();
 	}
@@ -100,3 +99,32 @@ void addMasterObjective(PowerSystem sys, MasterProblem &M, double sigma) {
 	expr.end();
 
 }//END addMasterObjective()
+
+void addMasterCut(MasterProblem &M, PowerSystem sys, vector<double> alpha, vector<vector<Beeta>> beeta, int it_count) {
+	char elemName[NAMESIZE];
+
+	M.cut = IloRangeArray(M.env);
+	IloExpr expr(M.env);
+	sprintf_s(elemName, "Cut[%d]", it_count);
+
+	expr = M.nu;
+
+	for (int s = 0; s < sys.numScenarios; s++)
+	{
+		expr += alpha[s];
+
+		for (int i = 0; i < beeta[s].size(); i++) {
+			if (beeta[s][i].type == Gen) {
+				expr += beeta[s][i].value * M.NA_genDual[s][beeta[s][i].ID - 1];
+			}
+			else if (beeta[s][i].type == Dem) {
+				expr += beeta[s][i].value * M.NA_demDual[s][beeta[s][i].ID - 1];
+			}
+		}
+	}
+	IloRange tempCon(M.env, -IloInfinity, expr, 0, elemName);
+	M.cut.add(tempCon);
+	M.model.add(M.cut);
+	expr.end();
+
+}//END detObjective()
