@@ -24,12 +24,10 @@ int main(int argc, const char *argv[]) {
 	/* Read data and initialize an OPF instance. */
 	PowerSystem ps(inputDir, sysName);
 
-	double incumbent_deviation = 0.1;
+	double incumbent_deviation = 0.9;
 	double dual_deviation = 2;
-	int iteration_num = 10;
-	int incumbent_index = 0;
 
-	outOfSampleAlg(ps, inputDir, output_file, incumbent_deviation, dual_deviation, iteration_num, incumbent_index);
+	outOfSampleAlg(ps, inputDir, output_file, incumbent_deviation, dual_deviation);
 
 	return 0;
 }//END main()

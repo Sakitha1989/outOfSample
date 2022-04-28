@@ -179,7 +179,6 @@ public:
 	int numRTgenBids;
 	int numRTdemBids;
 	int numScenarios;
-
 	int numInflexGens;
 
 	int numRandomVariables = 0;

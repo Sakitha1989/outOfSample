@@ -70,6 +70,17 @@ struct solution {
 	oneDual   pi;
 };
 
+struct masterPrimal {
+	double nu;
+	vector<vector<double>> naDuals;
+
+};
+
+struct masterSolution {
+	double	  obj;
+	masterPrimal x;
+};
+
 class ClearingModel {
 public:
 	ClearingModel(PowerSystem sys);
@@ -108,7 +119,7 @@ public:
 	IloCplex	cplex;
 
 	/* Decision variables, constraints and random variables */
-	IloArray<IloNumVarArray> NA_genDual, NA_demDual;
+	IloArray<IloNumVarArray> naDual;
 	IloNumVar nu;
 
 	IloRangeArray expectation, cut;
@@ -135,28 +146,32 @@ void printHelpMenu();
 /* subproblemSetup.cpp */
 void addVariables(PowerSystem sys, ClearingModel &M);
 void addConstraints(PowerSystem sys, ClearingModel &M);
-void detObjective(PowerSystem sys, ClearingModel &M, IloNumArray NA_genDual, IloNumArray NA_demDual);
+void detObjective(PowerSystem sys, ClearingModel &M, vector<double> naDuals);
 void stocObjective(PowerSystem sys, ClearingModel &M);
-void updateSubproblemObjective(PowerSystem sys, ClearingModel &M, IloNumArray NA_genDual, IloNumArray NA_demDual, int scen);
+void updateSubproblemObjective(PowerSystem sys, ClearingModel &M, vector<double> naDuals, int scen);
 
 /* masterproblemSetup */
 void addMasterVariables(PowerSystem sys, MasterProblem &M);
 void addMasterConstraints(PowerSystem sys, MasterProblem &M);
 void addMasterObjective(PowerSystem sys, MasterProblem &M, double sigma);
 void addMasterCut(MasterProblem &M, PowerSystem sys, vector<double> alpha, vector<vector<Beeta>> beeta, int it_count);
+void updateMasterObjective(PowerSystem sys, MasterProblem &M, double sigma, vector<vector<double>> dual);
+void updateMasterObjective(PowerSystem sys, MasterProblem &M, double sigma, vector<vector<double>> dual);
 
 /* outOfSampleObs.cpp */
-void outOfSampleAlg(PowerSystem sys, string inputDir, ofstream &output_file, double incumbent_deviation, double dual_deviation, int iteration_num, int incumbent_index);
-IloNumArray meanDual(MasterProblem M, IloArray<IloNumArray> dual);
-double calculateAlpha(double alpha, ClearingModel subproblemModel, PowerSystem sys, solution soln, int scen, IloNumArray NA_genDual, IloNumArray NA_demDual, int it_count);
-vector<Beeta> calculateBeeta(vector<Beeta> beeta, PowerSystem sys, solution soln, int scen, int it_count);
-double evaluateNu(vector<vector<double>> alpha, vector<vector<vector<Beeta>>> beeta, IloArray<IloNumArray> gen, IloArray<IloNumArray> dem, int it_count, bool mean);
-int incumbentUpdate(double incumbent_deviation, vector<vector<double>> alpha, vector<vector<vector<Beeta>>> beeta, IloArray<IloArray<IloNumArray>> gen, IloArray<IloArray<IloNumArray>> dem, int it_count);
+void outOfSampleAlg(PowerSystem sys, string inputDir, ofstream &output_file, double incumbent_deviation, double dual_deviation);
+void calculateAlpha(double &alpha, ClearingModel subproblemModel, PowerSystem sys, solution soln, int scen, vector<double> naDuals);
+void calculateBeeta(vector<Beeta> &beeta, PowerSystem sys, solution soln, int scen);
+double evaluateNu(vector<vector<double>> alpha, vector<vector<vector<Beeta>>> beeta, vector<vector<double>> naDuals, int it_count);
+void incumbentUpdate(double gamma, vector<vector<double>> alpha, vector<vector<vector<Beeta>>> beeta, vector<vector<double>> candidateNaDuals, vector<vector<double>> &incumbentNaDuals, int it_count);
+vector<vector<double>> xiBar(vector<vector<double>> indumbentNaDuals);
+vector<double> meanDual(vector<vector<double>> dual);
 
 /* models.cpp */
-void subproblem(PowerSystem sys, ClearingModel &M, IloNumArray NA_genDual, IloNumArray NA_demDual);
+void subproblem(PowerSystem sys, ClearingModel &M, vector<double> naDuals);
 void masterproblem(PowerSystem sys, MasterProblem &M, double sigma);
 solution getSolution(ClearingModel M, PowerSystem sys);
+masterSolution masterGetSolution(MasterProblem M, PowerSystem sys);
 vector<double> getPrimal(IloCplex cplex, IloNumVarArray x);
 vector<double> getDual(IloCplex cplex, IloRangeArray c);
 

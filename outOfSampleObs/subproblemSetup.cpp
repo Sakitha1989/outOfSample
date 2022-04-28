@@ -239,7 +239,7 @@ void addConstraints(PowerSystem sys, ClearingModel &M) {
 
 }//END detConstraints()
 
-void detObjective(PowerSystem sys, ClearingModel &M, IloNumArray NA_genDual, IloNumArray NA_demDual) {
+void detObjective(PowerSystem sys, ClearingModel &M, vector<double> naDuals) {
 
 	/***** Objective function *****/
 	IloExpr dayAheadCost(M.env);
@@ -255,7 +255,7 @@ void detObjective(PowerSystem sys, ClearingModel &M, IloNumArray NA_genDual, Ilo
 			it++;
 		}
 		if (it < sys.genDA_bids.size()) {
-			dayAheadCost -= NA_genDual[it] * M.DAgen[it];
+			dayAheadCost -= naDuals[it] * M.DAgen[it];
 		}
 	}
 	for (int d = 0; d < sys.numLoads; d++) {
@@ -267,7 +267,7 @@ void detObjective(PowerSystem sys, ClearingModel &M, IloNumArray NA_genDual, Ilo
 			it++;
 		}
 		if (it < sys.demDA_bids.size()) {
-			dayAheadCost -= NA_demDual[it] * M.DAdem[it];
+			dayAheadCost -= naDuals[sys.numGenerators + it] * M.DAdem[it];
 		}
 	}
 
@@ -319,10 +319,14 @@ void stocObjective(PowerSystem sys, ClearingModel &M) {
 
 }//END stocObjective()
 
-void updateSubproblemObjective(PowerSystem sys, ClearingModel &M, IloNumArray NA_genDual, IloNumArray NA_demDual, int scen) {
+void updateSubproblemObjective(PowerSystem sys, ClearingModel &M, vector<double> naDuals, int scen) {
 
-	M.obj.setLinearCoefs(M.DAgen, NA_genDual);
-	M.obj.setLinearCoefs(M.DAdem, NA_demDual);
+	for (int i = 0; i < sys.numGenerators; i++){
+		M.obj.setLinearCoef(M.DAgen[i], naDuals[i]);
+	}
+	for (int i = 0; i < sys.numLoads; i++) {
+		M.obj.setLinearCoef(M.DAdem[i], naDuals[sys.numGenerators + i]);
+	}
 
 	M.model.add(M.obj);
 

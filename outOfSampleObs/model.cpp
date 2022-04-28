@@ -10,7 +10,7 @@
 #include "model.hpp"
 
 
-void subproblem(PowerSystem sys, ClearingModel &M, IloNumArray NA_genDual, IloNumArray NA_demDual) {
+void subproblem(PowerSystem sys, ClearingModel &M, vector<double> naDuals) {
 
 	M.name = "subproblem";
 
@@ -45,7 +45,7 @@ void subproblem(PowerSystem sys, ClearingModel &M, IloNumArray NA_genDual, IloNu
 
 	addVariables(sys, M);
 	addConstraints(sys, M);
-	detObjective(sys, M, NA_genDual, NA_demDual);
+	detObjective(sys, M, naDuals);
 	stocObjective(sys, M);
 
 	M.exportModel(sys, "subproblemModel.lp");
@@ -58,8 +58,7 @@ void masterproblem(PowerSystem sys, MasterProblem &M, double sigma) {
 
 	/* Initialize for first-stage component addition */
 	M.nu = IloNumVar(M.env);
-	M.NA_demDual = IloArray<IloNumVarArray>(M.env, sys.numScenarios);
-	M.NA_genDual = IloArray<IloNumVarArray>(M.env, sys.numScenarios);
+	M.naDual = IloArray<IloNumVarArray>(M.env, sys.numScenarios);
 
 	/* Initialize the anticipative stage components */
 	M.expectation = IloRangeArray(M.env);
@@ -201,6 +200,22 @@ solution getSolution(ClearingModel M, PowerSystem sys) {
 	return soln;
 
 }//END getSolution()
+
+masterSolution masterGetSolution(MasterProblem M, PowerSystem sys) {
+
+	masterSolution mSoln;
+
+	mSoln.obj = M.cplex.getValue(M.obj);
+	mSoln.x.nu = M.cplex.getValue(M.nu);
+
+	mSoln.x.naDuals = vector<vector<double>>(sys.numScenarios);
+	for (int s = 0; s < sys.numScenarios; s++){
+
+		mSoln.x.naDuals[s] = vector<double>(M.naDual[s].getSize());
+		mSoln.x.naDuals[s] = getPrimal(M.cplex, M.naDual[s]);
+	}
+	return mSoln;
+}
 
 vector<double> getPrimal(IloCplex cplex, IloNumVarArray x) {
 
