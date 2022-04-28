@@ -147,8 +147,11 @@ void addMasterCut(MasterProblem &M, PowerSystem sys, vector<double> alpha, vecto
 
 /* outOfSampleObs.cpp */
 void outOfSampleAlg(PowerSystem sys, string inputDir, ofstream &output_file, double incumbent_deviation, double dual_deviation, int iteration_num, int incumbent_index);
+IloNumArray meanDual(MasterProblem M, IloArray<IloNumArray> dual);
 double calculateAlpha(double alpha, ClearingModel subproblemModel, PowerSystem sys, solution soln, int scen, IloNumArray NA_genDual, IloNumArray NA_demDual, int it_count);
 vector<Beeta> calculateBeeta(vector<Beeta> beeta, PowerSystem sys, solution soln, int scen, int it_count);
+double evaluateNu(vector<vector<double>> alpha, vector<vector<vector<Beeta>>> beeta, IloArray<IloNumArray> gen, IloArray<IloNumArray> dem, int it_count, bool mean);
+int incumbentUpdate(double incumbent_deviation, vector<vector<double>> alpha, vector<vector<vector<Beeta>>> beeta, IloArray<IloArray<IloNumArray>> gen, IloArray<IloArray<IloNumArray>> dem, int it_count);
 
 /* models.cpp */
 void subproblem(PowerSystem sys, ClearingModel &M, IloNumArray NA_genDual, IloNumArray NA_demDual);
