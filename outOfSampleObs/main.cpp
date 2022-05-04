@@ -24,7 +24,7 @@ int main(int argc, const char *argv[]) {
 	/* Read data and initialize an OPF instance. */
 	PowerSystem ps(inputDir, sysName);
 
-	double incumbent_deviation = 0.9;
+	double incumbent_deviation = 0.1;
 	double dual_deviation = 2;
 
 	outOfSampleAlg(ps, inputDir, output_file, incumbent_deviation, dual_deviation);

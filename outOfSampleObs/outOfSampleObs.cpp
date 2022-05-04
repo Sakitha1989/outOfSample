@@ -12,65 +12,76 @@
 /* Algorithm */
 void outOfSampleAlg(PowerSystem sys, string inputDir, ofstream &output_file, double incumbent_deviation, double dual_deviation) {
 
-	ClearingModel subproblemModel(sys);
-	MasterProblem master(sys);
 	int numSVvariables = sys.numGenerators + sys.numLoads;
+	bool incumbUpdate = false;
+#if defined (FULL_NA)
+	numSVvariables += sys.numLines + sys.numBuses;
+#endif
 
-	vector<vector<double>> candidateNaDuals(sys.numScenarios); //scen_index, var_indx
-	vector<vector<double>> incumbentNaDuals(sys.numScenarios);
+	ClearingModel subproblemModel(sys);
+	masterType master(sys, numSVvariables);
 
-	for (int s = 0; s < sys.numScenarios; s++) {
-		candidateNaDuals[s] = vector<double>(numSVvariables);
-		incumbentNaDuals[s] = vector<double>(numSVvariables);
-		for (int i = 0; i < (numSVvariables); i++) {
-			candidateNaDuals[s][i] = 0;
-			incumbentNaDuals[s][i] = 0;
+	for (int s = 0; s < master.candidNa.size(); s++) {
+		for (int i = 0; i < master.candidNa[s].size(); i++) {
+			master.candidNa[s][i] = 0;
+			master.incumbNa[s][i] = 0;
 		}
 	}
 
-	subproblem(sys, subproblemModel, candidateNaDuals[0]);
-	masterproblem(sys, master, dual_deviation);
+	subproblem(sys, subproblemModel, master.candidNa[0]);
+	masterproblem(sys, master.prob, dual_deviation);
 	
-	vector<vector<double>> alpha;								//iter_index, scen_indx
-	vector<vector<vector<Beeta>>> beeta;						//iter_index, scen_indx, var_indx
-
-	for (int k = 0; k < 5; k++) {
-		masterSolution mSoln;
-		vector<double> currentAlpha(sys.numScenarios);
-		vector<vector<Beeta>> currentBeeta(sys.numScenarios);
+	int k = 0;
+	while (k < 100) {
+#if defined (ALG_CHECK)
+			cout << "Iteration-" << k << "::";
+#else
+		if (k%10 == 0)
+		{
+			cout << endl;
+			cout << "Iteration-" << k << "::";
+		}
+#endif
+		oneCut currentCut(sys, numSVvariables);
 
 		for (int s = 0; s < sys.numScenarios; s++) {
 
 			solution soln;
 
-			updateSubproblemObjective(sys, subproblemModel, candidateNaDuals[s], s);
+			updateSubproblemObjective(sys, subproblemModel, master.candidNa[s], s);
+			subproblemModel.exportModel(sys, "sub.lp");
 
 			/* solve the model and obtain solutions */
 			subproblemModel.solve();
 			soln = getSolution(subproblemModel, sys);
 
-			calculateAlpha(currentAlpha[s], subproblemModel, sys, soln, s, candidateNaDuals[s]);
-			calculateBeeta(currentBeeta[s], sys, soln, s);
+			currentCut.alpha += calculateAlpha(subproblemModel, sys, soln, s, master.candidNa[s]);
+			calculateBeta(currentCut.beta[s], sys, soln, s);
 		}
+		currentCut.k = k;
+		sprintf_s(currentCut.name, "Cut[%d]", k);
 
-		alpha.push_back(currentAlpha);
-		beeta.push_back(currentBeeta);
+		addMasterCut(master, sys, currentCut);
+		
+		if (k > 0){
+			incumbUpdate = incumbentUpdate(incumbent_deviation, master, k);
+		}
+		
 
-		addMasterCut(master, sys, currentAlpha, currentBeeta, k);
+		if (incumbUpdate){
+			updateMasterObjective(sys, master.prob, dual_deviation, master.incumbNa);
+			master.prob.exportModel(sys, "updateMaster.lp");
+		}
+		
+		master.prob.solve();
+		masterGetSolution(master, sys);
 
-		incumbentUpdate(incumbent_deviation, alpha, beeta, candidateNaDuals, incumbentNaDuals, k);
-
-		updateMasterObjective(sys, master, dual_deviation, incumbentNaDuals);
-		master.exportModel(sys, "updateMaster.lp");
-		master.solve();
-		mSoln = masterGetSolution(master, sys);
-
-		candidateNaDuals = mSoln.x.naDuals;
+		k++;
 	}
 }// END outOfSampleAlg()
 
 /* calculate alpha for scenario "scne" */
-void calculateAlpha(double &alpha, ClearingModel M, PowerSystem sys, solution soln, int scen, vector<double> naDuals) {
+double calculateAlpha(ClearingModel M, PowerSystem sys, solution soln, int scen, vector<double> naDuals) {
 
 	double expr = 0;
 	for (int g = 0; g < sys.numGenerators; g++){
@@ -79,89 +90,146 @@ void calculateAlpha(double &alpha, ClearingModel M, PowerSystem sys, solution so
 	for (int d = 0; d < sys.numLoads; d++){
 		expr += naDuals[sys.numGenerators + d] * soln.x.DAdem[d];
 	}
+#if defined (FULL_NA)
+	for (int l = 0; l < sys.numLines; l++)
+	{
+		expr += naDuals[sys.numGenerators + sys.numLoads + l] * soln.x.DAflow[l];
+	}
+	for (int b = 0; b < sys.numBuses; b++)
+	{
+		expr += naDuals[sys.numGenerators + sys.numLoads + sys.numLines + b] * soln.x.DAtheta[b];
+	}
+#endif
 
-	alpha = sys.scenarios[scen].probability * (soln.obj + expr);
+	double alpha = sys.scenarios[scen].probability * (soln.obj + expr);
+	return alpha;
 
 }// END calculateAlpha()
 
 /* calculate beeta for scenario "scne" */
-void calculateBeeta(vector<Beeta> &beeta, PowerSystem sys, solution soln, int scen) {
+void calculateBeta(vector<double> &beta, PowerSystem sys, solution soln, int scen) {
+
+	int offSet = 0;
 
 	for (int g = 0; g < sys.numGenerators; g++){
-		Beeta tempBeeta;
-		tempBeeta.ID = sys.generators[g].id;
-		tempBeeta.scenario = scen;
-		tempBeeta.type = Gen;
-		tempBeeta.value = sys.scenarios[scen].probability * soln.x.DAgen[g];
+		//double tempBeta;
+		//tempBeeta.ID = sys.generators[g].id;
+		//tempBeeta.scenario = scen;
+		//tempBeeta.type = Gen;
+		beta[g + offSet] = sys.scenarios[scen].probability * soln.x.DAgen[g];
 
-		beeta.push_back(tempBeeta);
+		//beta[g+1] = tempBeta;
 	}
+	offSet += sys.numGenerators;
 	for (int d = 0; d < sys.numLoads; d++){
-		Beeta tempBeeta;
-		tempBeeta.ID = sys.loads[d].id;
-		tempBeeta.scenario = scen;
-		tempBeeta.type = Dem;
-		tempBeeta.value = sys.scenarios[scen].probability * soln.x.DAdem[d];
+		//double tempBeta;
+		//tempBeeta.ID = sys.loads[d].id;
+		//tempBeeta.scenario = scen;
+		//tempBeeta.type = Dem;
+		beta[d + offSet] = sys.scenarios[scen].probability * soln.x.DAdem[d];
 
-		beeta.push_back(tempBeeta);
+		//beta[sys.numGenerators + d +1] =  tempBeta;
 	}
+	offSet += sys.numLoads;
+#if defined (FULL_NA)
+	for (int l = 0; l < sys.numLines; l++) {
+		//double tempBeta;
+		/*tempBeeta.ID = sys.lines[l].id;
+		tempBeeta.scenario = scen;*/
+		beta[l + offSet] = sys.scenarios[scen].probability * soln.x.DAflow[l];
+
+		//beeta.push_back(tempBeta);
+	}
+	offSet += sys.numLines;
+	for (int b = 0; b < sys.numBuses; b++) {
+		//double tempBeta;
+		/*tempBeeta.ID = sys.buses[b].id;
+		tempBeeta.scenario = scen;*/
+		beta[b + offSet] = sys.scenarios[scen].probability * soln.x.DAtheta[b];
+
+		//beeta.push_back(tempBeta);
+	}
+#endif
 
 } // END calculateBeeta()
 
-/* function nu */
-double evaluateNu(vector<vector<double>> alpha, vector<vector<vector<Beeta>>> beeta, vector<vector<double>> naDuals, int it_count) {
+/* Minimum cut height calculation */
+double minCutHeight(masterType M) {
 
 	double incumbent = IloInfinity;
 	double temp;
 
-	for (int i = 0; i < it_count + 1; i++){
-		temp = 0;
-		for (int s = 0; s < naDuals.size(); s++){			// loop through the scenarios
-			temp += alpha[it_count][s];
-			for (int n = 0; n < naDuals[s].size(); n++){	// loop through the dual variables
-				temp += beeta[it_count][s][n].value * naDuals[s][n];
-			}
-		}
+	for (int i = 0; i < M.cuts.size(); i++) {
+		temp = cutHeight(M.cuts[i], M.candidNa);
 
-		if (temp < incumbent)										// minimum
-		{
+		if (temp < incumbent){			//minimum
 			incumbent = temp;
 		}
 	}
 
 	return incumbent;
-}// END evaluateNu()
+}// END minCutHeight()
 
+/* Cut height calculation */
+double cutHeight(oneCut cut, vector<vector<double>> naDuals) {
 
-void incumbentUpdate(double gamma, vector<vector<double>> alpha, vector<vector<vector<Beeta>>> beeta, vector<vector<double>> candidateNaDuals, vector<vector<double>> &incumbentNaDuals, int it_count) {
+	double height = cut.alpha;
 
-	vector<double> nu(4);
-
-	nu[0] = evaluateNu(alpha, beeta, candidateNaDuals, it_count);
-	nu[1] = evaluateNu(alpha, beeta, xiBar(incumbentNaDuals), it_count);
-	nu[2] = evaluateNu(alpha, beeta, candidateNaDuals, it_count - 1);
-	nu[3] = evaluateNu(alpha, beeta, xiBar(incumbentNaDuals), it_count - 1);
-
-	if (nu[0] - nu[1] >= gamma * (nu[2] - nu[3])){
-		incumbentNaDuals = candidateNaDuals;
-	}
-}
-
-vector<vector<double>> xiBar(vector<vector<double>> incumbentNaDual) {
-
-	vector<double> mean = meanDual(incumbentNaDual);
-
-	vector<vector<double>> meanDev(incumbentNaDual.size());
-
-	for (int s = 0; s < incumbentNaDual.size(); s++) {
-
-		meanDev[s] = vector<double>(incumbentNaDual[s].size());
-		for (int i = 0; i < incumbentNaDual[s].size(); i++){
-			meanDev[s][i] = incumbentNaDual[s][i] - mean[i];
+	for (int s = 0; s < cut.beta.size(); s++) {			// loop through the scenarios
+		for (int n = 0; n < cut.beta[s].size(); n++) {	// loop through the dual variables
+			height += cut.beta[s][n] * naDuals[s][n];
 		}
 	}
-	return meanDev;
-}
+
+	return height;
+}// END cutHeight()
+
+/* update the incumbent solution */
+bool incumbentUpdate(double gamma, masterType &master, int current_it){
+
+	bool incumbUpdate = false;
+	double tempCandid;
+	double tempIncumb;
+
+	tempCandid = minCutHeight(master);
+	if (master.incumbCut == current_it - 1){
+
+	}
+	//tempCandid = min(master.candidEst, cutHeight(master.cuts[current_it], master.candidNa));
+	tempIncumb = min(master.incumbEst, cutHeight(master.cuts[current_it], master.incumbNa));
+
+#if defined (ALG_CHECK)
+	cout << "Incumbent = " << master.incumbEst << "\tCandidate = " << master.candidEst << ",\tIncumbent Temp" << tempIncumb << ",\tCandidate Temp" << tempCandid << endl;
+#endif
+
+	if (tempCandid - tempIncumb >= gamma * (master.candidEst - master.incumbEst)) {
+		master.incumbCut = current_it;
+		master.incumbEst = minCutHeight(master);
+		computeIncumbent(master.candidNa, master.incumbNa);
+		
+		incumbUpdate = true;
+		cout << "+"; fflush(stdout);
+	}
+	else {
+		master.incumbEst = tempIncumb;
+	}
+
+	return incumbUpdate;
+}// END incumbentUpdate()
+
+/* function nu */
+void computeIncumbent(vector<vector<double>> candidNa, vector<vector<double>> &incumbNa) {
+
+	vector<double> mean = meanDual(candidNa);
+
+	for (int s = 0; s < candidNa.size(); s++) {
+
+		incumbNa[s] = vector<double>(candidNa[s].size());
+		for (int i = 0; i < candidNa[s].size(); i++){
+			incumbNa[s][i] = candidNa[s][i] - mean[i];
+		}
+	}
+}// END xiBar()
 
 /* calculate the mean scenario duals */
 vector<double> meanDual(vector<vector<double>> dual) {

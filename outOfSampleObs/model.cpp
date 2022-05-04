@@ -52,7 +52,7 @@ void subproblem(PowerSystem sys, ClearingModel &M, vector<double> naDuals) {
 
 }//END subproblem
 
-void masterproblem(PowerSystem sys, MasterProblem &M, double sigma) {
+void masterproblem(PowerSystem sys, masterType::MasterProblem &M, double sigma) {
 
 	M.name = "master";
 
@@ -104,7 +104,20 @@ void ClearingModel::exportModel(PowerSystem sys, string fname) {
 	cplex.exportModel(("..\\outputData\\" + sys.name + "\\" + fname).c_str());
 }
 
-MasterProblem::MasterProblem(PowerSystem sys) {
+masterType::MasterProblem::MasterProblem() {
+
+	model = IloModel(env);
+	cplex = IloCplex(model);
+
+	/* Initialize a dummy objective function */
+	obj = IloMaximize(env, 0.0);
+	model.add(obj);
+
+	cplex.setOut(env.getNullStream());
+	cplex.setWarning(env.getNullStream());
+
+}// ClearingModel constructor ()
+masterType::MasterProblem::MasterProblem(PowerSystem sys) {
 
 	model = IloModel(env);
 	cplex = IloCplex(model);
@@ -118,7 +131,7 @@ MasterProblem::MasterProblem(PowerSystem sys) {
 
 }// ClearingModel constructor ()
 
-bool MasterProblem::solve() {
+bool masterType::MasterProblem::solve() {
 
 	try {
 
@@ -133,7 +146,7 @@ bool MasterProblem::solve() {
 	}
 }
 
-void MasterProblem::exportModel(PowerSystem sys, string fname) {
+void masterType::MasterProblem::exportModel(PowerSystem sys, string fname) {
 	cplex.exportModel(("..\\outputData\\" + sys.name + "\\" + fname).c_str());
 }
 
@@ -201,20 +214,17 @@ solution getSolution(ClearingModel M, PowerSystem sys) {
 
 }//END getSolution()
 
-masterSolution masterGetSolution(MasterProblem M, PowerSystem sys) {
+void masterGetSolution(masterType &M, PowerSystem sys) {
 
-	masterSolution mSoln;
+	M.obj = M.prob.cplex.getValue(M.prob.obj);
+	M.candidEst = M.prob.cplex.getValue(M.prob.nu);
 
-	mSoln.obj = M.cplex.getValue(M.obj);
-	mSoln.x.nu = M.cplex.getValue(M.nu);
-
-	mSoln.x.naDuals = vector<vector<double>>(sys.numScenarios);
+	
 	for (int s = 0; s < sys.numScenarios; s++){
 
-		mSoln.x.naDuals[s] = vector<double>(M.naDual[s].getSize());
-		mSoln.x.naDuals[s] = getPrimal(M.cplex, M.naDual[s]);
+		M.candidNa[s] = vector<double>(M.prob.naDual[s].getSize());
+		M.candidNa[s] = getPrimal(M.prob.cplex, M.prob.naDual[s]);
 	}
-	return mSoln;
 }
 
 vector<double> getPrimal(IloCplex cplex, IloNumVarArray x) {

@@ -9,7 +9,24 @@
 
 #include "model.hpp"
 
-void addMasterVariables(PowerSystem sys, MasterProblem &M) {
+oneCut::oneCut(PowerSystem sys, int numVar) {
+
+	beta = vector<vector<double>>(sys.numScenarios, vector<double>(numVar));
+}
+
+masterType::masterType() {
+
+}
+
+masterType::masterType(PowerSystem sys, int numVar) {
+
+	candidNa = vector<vector<double>>(sys.numScenarios, vector<double>(numVar));
+	incumbNa = vector<vector<double>>(sys.numScenarios, vector<double>(numVar));
+	candidEst = 0;
+	incumbEst = 0;
+}
+
+void addMasterVariables(PowerSystem sys, masterType::MasterProblem &M) {
 	char elemName[NAMESIZE];
 
 	/* Cut */
@@ -18,7 +35,13 @@ void addMasterVariables(PowerSystem sys, MasterProblem &M) {
 	M.nu.setName(elemName);
 
 	for (int s = 0; s < sys.numScenarios; s++){
-		M.naDual[s] = IloNumVarArray(M.env, sys.numGenerators + sys.numLoads);
+		int numVar = 0;
+#if defined (FULL_NA)
+		numVar = sys.numGenerators + sys.numLoads + sys.numLines + sys.numBuses;
+#else
+		numVar = sys.numGenerators + sys.numLoads;
+#endif
+		M.naDual[s] = IloNumVarArray(M.env, numVar);
 		for (int i = 0; i < M.naDual[s].getSize(); i++) {
 
 			sprintf_s(elemName, "naDual[%d][%d]", i, s+1);
@@ -30,7 +53,7 @@ void addMasterVariables(PowerSystem sys, MasterProblem &M) {
 
 }//END addMasterVariables()
 
-void addMasterConstraints(PowerSystem sys, MasterProblem &M) {
+void addMasterConstraints(PowerSystem sys, masterType::MasterProblem &M) {
 	char elemName[NAMESIZE];
 
 	M.expectation = IloRangeArray(M.env, M.naDual[0].getSize());
@@ -52,7 +75,7 @@ void addMasterConstraints(PowerSystem sys, MasterProblem &M) {
 
 }//END addMasterConstraints()
 
-void addMasterObjective(PowerSystem sys, MasterProblem &M, double sigma) {
+void addMasterObjective(PowerSystem sys, masterType::MasterProblem &M, double sigma) {
 
 	IloExpr expr(M.env);
 	expr = M.obj.getExpr();
@@ -74,44 +97,40 @@ void addMasterObjective(PowerSystem sys, MasterProblem &M, double sigma) {
 
 }//END addMasterObjective()
 
-void addMasterCut(MasterProblem &M, PowerSystem sys, vector<double> alpha, vector<vector<Beeta>> beeta, int it_count) {
-	char elemName[NAMESIZE];
+void addMasterCut(masterType &M, PowerSystem sys, oneCut cut) {
 
-	M.cut = IloRangeArray(M.env);
-	IloExpr expr(M.env);
-	sprintf_s(elemName, "Cut[%d]", it_count);
+	M.cuts.push_back(cut);
 
-	expr = M.nu;
+	IloExpr expr(M.prob.env);
 
-	for (int s = 0; s < sys.numScenarios; s++){
-		expr += alpha[s];
+	expr = M.prob.nu;
 
-		for (int i = 0; i < beeta[s].size(); i++) {
-			expr += beeta[s][i].value * M.naDual[s][i];
+	for (int s = 0; s < sys.numScenarios; s++) {
+		for (int i = 1; i < cut.beta.size(); i++) {
+			expr += cut.beta[s][i] * M.prob.naDual[s][i - 1];
 		}
 	}
-	IloRange tempCon(M.env, -IloInfinity, expr, 0, elemName);
-	M.cut.add(tempCon);
-	M.model.add(M.cut);
+
+	IloRange tempCon(M.prob.env, -IloInfinity, expr, cut.alpha, cut.name);
+	M.prob.model.add(tempCon);
 	expr.end();
+
+	//M.cuts.push_back(cut);
 
 }//END addMasterCut()
 
-void updateMasterObjective(PowerSystem sys, MasterProblem &M, double sigma, vector<vector<double>> dual) {
+void updateMasterObjective(PowerSystem sys, masterType::MasterProblem &M, double sigma, vector<vector<double>> dual) {
 
 	IloExpr expr(M.env);
-	expr = M.obj.getExpr();
-
 	M.model.remove(M.obj);
 
-	expr += M.nu;
+	expr = M.nu;
 
 	for (int s = 0; s < sys.numScenarios; s++) {
 		for (int i = 0; i < M.naDual[s].getSize(); i++) {
 			expr -= (sigma / 2) * (M.naDual[s][i] - dual[s][i]) * (M.naDual[s][i] - dual[s][i]);
 		}
 	}
-
 
 	M.obj.setExpr(expr);
 	M.model.add(M.obj);
