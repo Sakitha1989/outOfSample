@@ -33,31 +33,48 @@ void outOfSampleAlg(PowerSystem sys, string inputDir, ofstream &output_file, dou
 	
 	int k = 0;
 	while (k < 100) {
-#if defined (ALG_CHECK)
-			cout << "Iteration-" << k << "::";
-#else
-		if (k%10 == 0)
-		{
-			cout << endl;
-			cout << "Iteration-" << k << "::";
-		}
-#endif
+
 		oneCut currentCut(sys, numSVvariables);
+
+		double x = 0;
 
 		for (int s = 0; s < sys.numScenarios; s++) {
 
 			solution soln;
 
-			updateSubproblemObjective(sys, subproblemModel, master.candidNa[s], s);
+			updateSubproblem(sys, subproblemModel, master.candidNa[s], s);
 			subproblemModel.exportModel(sys, "sub.lp");
 
 			/* solve the model and obtain solutions */
 			subproblemModel.solve();
 			soln = getSolution(subproblemModel, sys);
+			x += sys.scenarios[s].probability * soln.obj;
 
 			currentCut.alpha += calculateAlpha(subproblemModel, sys, soln, s, master.candidNa[s]);
 			calculateBeta(currentCut.beta[s], sys, soln, s);
 		}
+
+#if defined (ALG_CHECK)
+		cout << "Iteration-" << k << "::";
+
+		cout << "Obj: " << x << endl;
+		x = 0;
+		for (int s = 0; s < sys.numScenarios; s++) {
+			for (int i = 0; i < numSVvariables; i++) {
+				x += currentCut.beta[s][i] * master.candidNa[s][i];
+			}
+		}
+		x += currentCut.alpha;
+
+		cout << "Cut: " << x << endl;
+#else
+		if (k % 10 == 0)
+		{
+			cout << endl;
+			cout << "Iteration-" << k << "::";
+		}
+#endif
+
 		currentCut.k = k;
 		sprintf_s(currentCut.name, "Cut[%d]", k);
 
@@ -84,24 +101,15 @@ void outOfSampleAlg(PowerSystem sys, string inputDir, ofstream &output_file, dou
 double calculateAlpha(ClearingModel M, PowerSystem sys, solution soln, int scen, vector<double> naDuals) {
 
 	double expr = 0;
-	for (int g = 0; g < sys.numGenerators; g++){
-		expr += naDuals[g] * soln.x.DAgen[g];
-	}
-	for (int d = 0; d < sys.numLoads; d++){
-		expr += naDuals[sys.numGenerators + d] * soln.x.DAdem[d];
-	}
-#if defined (FULL_NA)
-	for (int l = 0; l < sys.numLines; l++)
-	{
-		expr += naDuals[sys.numGenerators + sys.numLoads + l] * soln.x.DAflow[l];
-	}
-	for (int b = 0; b < sys.numBuses; b++)
-	{
-		expr += naDuals[sys.numGenerators + sys.numLoads + sys.numLines + b] * soln.x.DAtheta[b];
-	}
-#endif
 
-	double alpha = sys.scenarios[scen].probability * (soln.obj + expr);
+	for (int g = 0; g < sys.numGenerators; g++) {
+		expr += sys.genDA_bids[g].price * soln.x.RTgen[g] + sys.genRT_bids[g].priceP * soln.x.RTetaGenP[g] - sys.genRT_bids[g].priceM * soln.x.RTetaGenM[g];
+	}
+	for (int d = 0; d < sys.numLoads; d++) {
+		expr -= sys.demDA_bids[d].price * soln.x.RTdem[d] + sys.demRT_bids[d].priceP * soln.x.RTetaDemM[d] - sys.demRT_bids[d].priceM * soln.x.RTetaDemP[d];
+	}
+
+	double alpha = expr * sys.scenarios[scen].probability;
 	return alpha;
 
 }// END calculateAlpha()
@@ -112,55 +120,33 @@ void calculateBeta(vector<double> &beta, PowerSystem sys, solution soln, int sce
 	int offSet = 0;
 
 	for (int g = 0; g < sys.numGenerators; g++){
-		//double tempBeta;
-		//tempBeeta.ID = sys.generators[g].id;
-		//tempBeeta.scenario = scen;
-		//tempBeeta.type = Gen;
 		beta[g + offSet] = sys.scenarios[scen].probability * soln.x.DAgen[g];
-
-		//beta[g+1] = tempBeta;
 	}
 	offSet += sys.numGenerators;
 	for (int d = 0; d < sys.numLoads; d++){
-		//double tempBeta;
-		//tempBeeta.ID = sys.loads[d].id;
-		//tempBeeta.scenario = scen;
-		//tempBeeta.type = Dem;
 		beta[d + offSet] = sys.scenarios[scen].probability * soln.x.DAdem[d];
-
-		//beta[sys.numGenerators + d +1] =  tempBeta;
 	}
 	offSet += sys.numLoads;
 #if defined (FULL_NA)
 	for (int l = 0; l < sys.numLines; l++) {
-		//double tempBeta;
-		/*tempBeeta.ID = sys.lines[l].id;
-		tempBeeta.scenario = scen;*/
 		beta[l + offSet] = sys.scenarios[scen].probability * soln.x.DAflow[l];
-
-		//beeta.push_back(tempBeta);
 	}
 	offSet += sys.numLines;
 	for (int b = 0; b < sys.numBuses; b++) {
-		//double tempBeta;
-		/*tempBeeta.ID = sys.buses[b].id;
-		tempBeeta.scenario = scen;*/
 		beta[b + offSet] = sys.scenarios[scen].probability * soln.x.DAtheta[b];
-
-		//beeta.push_back(tempBeta);
 	}
 #endif
-
 } // END calculateBeeta()
 
 /* Minimum cut height calculation */
-double minCutHeight(masterType M) {
+double minCutHeight(masterType M, vector<vector<double>> naDuals, int k) { //*****************************************************************
 
 	double incumbent = IloInfinity;
 	double temp;
 
-	for (int i = 0; i < M.cuts.size(); i++) {
-		temp = cutHeight(M.cuts[i], M.candidNa);
+	/*for (int i = 0; i < M.cuts.size(); i++) {*/
+	for (int i = 0; i < k; i++) { //*****************************************************************
+		temp = cutHeight(M.cuts[i], naDuals);
 
 		if (temp < incumbent){			//minimum
 			incumbent = temp;
@@ -190,25 +176,38 @@ bool incumbentUpdate(double gamma, masterType &master, int current_it){
 	bool incumbUpdate = false;
 	double tempCandid;
 	double tempIncumb;
+	double x1, x2; //*****************************************************************
 
-	tempCandid = minCutHeight(master);
-	if (master.incumbCut == current_it - 1){
-
-	}
+	tempCandid = minCutHeight(master, master.candidNa, current_it);
+	tempIncumb = minCutHeight(master, master.incumbNa, current_it);
+	x1 = minCutHeight(master, master.candidNa, current_it - 1); //*****************************************************************
+	x2 = minCutHeight(master, master.incumbNa, current_it - 1); //*****************************************************************
 	//tempCandid = min(master.candidEst, cutHeight(master.cuts[current_it], master.candidNa));
-	tempIncumb = min(master.incumbEst, cutHeight(master.cuts[current_it], master.incumbNa));
+	//tempIncumb = min(master.incumbEst, cutHeight(master.cuts[current_it], master.incumbNa));
 
 #if defined (ALG_CHECK)
+
+	vector<double> x = meanDual(master.candidNa);
+	for (int i = 0; i < master.candidNa[0].size(); i++)
+	{
+		cout << " " << x[i];
+	}
+	cout << endl;
+
 	cout << "Incumbent = " << master.incumbEst << "\tCandidate = " << master.candidEst << ",\tIncumbent Temp" << tempIncumb << ",\tCandidate Temp" << tempCandid << endl;
 #endif
 
-	if (tempCandid - tempIncumb >= gamma * (master.candidEst - master.incumbEst)) {
+	/*if (tempCandid - tempIncumb >= gamma * (master.candidEst - master.incumbEst)) {*/
+	if (tempCandid - tempIncumb >= gamma * (x1 - x2)) { //*****************************************************************
 		master.incumbCut = current_it;
-		master.incumbEst = minCutHeight(master);
-		computeIncumbent(master.candidNa, master.incumbNa);
+		master.incumbEst = tempCandid;
+		//master.incumbEst = minCutHeight(master, master.candidNa);
+		//computeIncumbent(master.candidNa, master.incumbNa);
+		master.incumbNa = master.candidNa;
 		
 		incumbUpdate = true;
-		cout << "+"; fflush(stdout);
+		cout << "+"; 
+		fflush(stdout);
 	}
 	else {
 		master.incumbEst = tempIncumb;
@@ -241,6 +240,7 @@ vector<double> meanDual(vector<vector<double>> dual) {
 			mean[i] += dual[s][i];
 		}
 		mean[i] = mean[i] / dual.size();
+		cout << "mean " << mean[i] << endl;
 	}
 	return mean;
 }// END meanDual()

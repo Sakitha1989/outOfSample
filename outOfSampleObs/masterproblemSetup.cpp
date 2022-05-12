@@ -115,8 +115,6 @@ void addMasterCut(masterType &M, PowerSystem sys, oneCut cut) {
 	M.prob.model.add(tempCon);
 	expr.end();
 
-	//M.cuts.push_back(cut);
-
 }//END addMasterCut()
 
 void updateMasterObjective(PowerSystem sys, masterType::MasterProblem &M, double sigma, vector<vector<double>> dual) {

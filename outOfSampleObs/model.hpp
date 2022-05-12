@@ -154,7 +154,7 @@ void addVariables(PowerSystem sys, ClearingModel &M);
 void addConstraints(PowerSystem sys, ClearingModel &M);
 void detObjective(PowerSystem sys, ClearingModel &M, vector<double> naDuals);
 void stocObjective(PowerSystem sys, ClearingModel &M);
-void updateSubproblemObjective(PowerSystem sys, ClearingModel &M, vector<double> naDuals, int scen);
+void updateSubproblem(PowerSystem sys, ClearingModel &M, vector<double> naDuals, int scen);
 
 /* masterproblemSetup */
 void addMasterVariables(PowerSystem sys, masterType::MasterProblem &M);
@@ -168,7 +168,7 @@ void updateMasterObjective(PowerSystem sys, masterType::MasterProblem &M, double
 void outOfSampleAlg(PowerSystem sys, string inputDir, ofstream &output_file, double incumbent_deviation, double dual_deviation);
 double calculateAlpha(ClearingModel subproblemModel, PowerSystem sys, solution soln, int scen, vector<double> naDuals);
 void calculateBeta(vector<double> &beeta, PowerSystem sys, solution soln, int scen);
-double minCutHeight(masterType M);
+double minCutHeight(masterType M, vector<vector<double>> naDuals, int k);
 double cutHeight(oneCut cut, vector<vector<double>> naDuals);
 bool incumbentUpdate(double gamma, masterType &master, int k);
 void computeIncumbent(vector<vector<double>> candidNa, vector<vector<double>> &incumbNa);

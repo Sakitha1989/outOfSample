@@ -319,7 +319,7 @@ void stocObjective(PowerSystem sys, ClearingModel &M) {
 
 }//END stocObjective()
 
-void updateSubproblemObjective(PowerSystem sys, ClearingModel &M, vector<double> naDuals, int scen) {
+void updateSubproblem(PowerSystem sys, ClearingModel &M, vector<double> naDuals, int scen) {
 
 	for (int i = 0; i < sys.numGenerators; i++){
 		M.obj.setLinearCoef(M.DAgen[i], naDuals[i]);
