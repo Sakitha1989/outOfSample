@@ -67,5 +67,5 @@ Bounds
       naDual(8)(1)#24 Free
       naDual(8)(2)#25 Free
       naDual(8)(3)#26 Free
-      Cut#27 Free
+-999999 <= Cut#27 <= 0
 End

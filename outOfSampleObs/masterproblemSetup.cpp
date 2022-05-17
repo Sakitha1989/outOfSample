@@ -31,7 +31,7 @@ void addMasterVariables(PowerSystem sys, masterType::MasterProblem &M) {
 
 	/* Cut */
 	sprintf_s(elemName, "Cut");
-	M.nu = IloNumVar(M.env, -IloInfinity, IloInfinity, ILOFLOAT);
+	M.nu = IloNumVar(M.env, -999999, 0, ILOFLOAT);
 	M.nu.setName(elemName);
 
 	for (int s = 0; s < sys.numScenarios; s++){
@@ -106,8 +106,8 @@ void addMasterCut(masterType &M, PowerSystem sys, oneCut cut) {
 	expr = M.prob.nu;
 
 	for (int s = 0; s < sys.numScenarios; s++) {
-		for (int i = 1; i < cut.beta.size(); i++) {
-			expr += cut.beta[s][i] * M.prob.naDual[s][i - 1];
+		for (int i = 0; i < cut.beta[s].size(); i++) {
+			expr += cut.beta[s][i] * M.prob.naDual[s][i];
 		}
 	}
 

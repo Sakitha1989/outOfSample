@@ -321,12 +321,25 @@ void stocObjective(PowerSystem sys, ClearingModel &M) {
 
 void updateSubproblem(PowerSystem sys, ClearingModel &M, vector<double> naDuals, int scen) {
 
+	int offset = 0;
+
 	for (int i = 0; i < sys.numGenerators; i++){
 		M.obj.setLinearCoef(M.DAgen[i], naDuals[i]);
 	}
+	offset += sys.numGenerators;
 	for (int i = 0; i < sys.numLoads; i++) {
-		M.obj.setLinearCoef(M.DAdem[i], naDuals[sys.numGenerators + i]);
+		M.obj.setLinearCoef(M.DAdem[i], naDuals[offset + i]);
 	}
+#if defined (FULL_NA)
+	offset += sys.numLoads;
+	for (int i = 0; i < sys.numBuses; i++) {
+		M.obj.setLinearCoef(M.DAtheta[i], naDuals[offset + i]);
+	}
+	offset += sys.numBuses;
+	for (int i = 0; i < sys.numLines; i++) {
+		M.obj.setLinearCoef(M.DAflow[i], naDuals[offset + i]);
+	}
+#endif
 
 	M.model.add(M.obj);
 

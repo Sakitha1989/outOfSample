@@ -166,13 +166,13 @@ void updateMasterObjective(PowerSystem sys, masterType::MasterProblem &M, double
 
 /* outOfSampleObs.cpp */
 void outOfSampleAlg(PowerSystem sys, string inputDir, ofstream &output_file, double incumbent_deviation, double dual_deviation);
-double calculateAlpha(ClearingModel subproblemModel, PowerSystem sys, solution soln, int scen, vector<double> naDuals);
+double calculateAlpha(PowerSystem sys, solution soln, int scen);
 void calculateBeta(vector<double> &beeta, PowerSystem sys, solution soln, int scen);
 double minCutHeight(masterType M, vector<vector<double>> naDuals, int k);
 double cutHeight(oneCut cut, vector<vector<double>> naDuals);
 bool incumbentUpdate(double gamma, masterType &master, int k);
-void computeIncumbent(vector<vector<double>> candidNa, vector<vector<double>> &incumbNa);
-vector<double> meanDual(vector<vector<double>> dual);
+void computeIncumbent(vector<vector<double>> candidNa, vector<vector<double>> &incumbNa, PowerSystem sys);
+vector<double> meanDual(vector<vector<double>> vec, PowerSystem sys);
 
 /* models.cpp */
 void subproblem(PowerSystem sys, ClearingModel &M, vector<double> naDuals);

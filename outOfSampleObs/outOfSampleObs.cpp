@@ -50,21 +50,21 @@ void outOfSampleAlg(PowerSystem sys, string inputDir, ofstream &output_file, dou
 			soln = getSolution(subproblemModel, sys);
 			x += sys.scenarios[s].probability * soln.obj;
 
-			currentCut.alpha += calculateAlpha(subproblemModel, sys, soln, s, master.candidNa[s]);
+			currentCut.alpha += calculateAlpha(sys, soln, s);
 			calculateBeta(currentCut.beta[s], sys, soln, s);
 		}
 
 #if defined (ALG_CHECK)
-		cout << "Iteration-" << k << "::";
+		cout << "Iteration-" << k << "::" << endl;
 
 		cout << "Obj: " << x << endl;
-		x = 0;
+		x = currentCut.alpha;
+
 		for (int s = 0; s < sys.numScenarios; s++) {
 			for (int i = 0; i < numSVvariables; i++) {
-				x += currentCut.beta[s][i] * master.candidNa[s][i];
+				x -= currentCut.beta[s][i] * master.candidNa[s][i];
 			}
 		}
-		x += currentCut.alpha;
 
 		cout << "Cut: " << x << endl;
 #else
@@ -87,30 +87,32 @@ void outOfSampleAlg(PowerSystem sys, string inputDir, ofstream &output_file, dou
 
 		if (incumbUpdate){
 			updateMasterObjective(sys, master.prob, dual_deviation, master.incumbNa);
-			master.prob.exportModel(sys, "updateMaster.lp");
 		}
 		
+		master.prob.exportModel(sys, "updateMaster.lp");
+
 		master.prob.solve();
 		masterGetSolution(master, sys);
+
+		meanDual(master.candidNa, sys);
 
 		k++;
 	}
 }// END outOfSampleAlg()
 
 /* calculate alpha for scenario "scne" */
-double calculateAlpha(ClearingModel M, PowerSystem sys, solution soln, int scen, vector<double> naDuals) {
+double calculateAlpha(PowerSystem sys, solution soln, int scen) {
 
-	double expr = 0;
+	double alpha = 0;
 
 	for (int g = 0; g < sys.numGenerators; g++) {
-		expr += sys.genDA_bids[g].price * soln.x.RTgen[g] + sys.genRT_bids[g].priceP * soln.x.RTetaGenP[g] - sys.genRT_bids[g].priceM * soln.x.RTetaGenM[g];
+		alpha += sys.genDA_bids[g].price * soln.x.RTgen[g] + sys.genRT_bids[g].priceP * soln.x.RTetaGenP[g] - sys.genRT_bids[g].priceM * soln.x.RTetaGenM[g];
 	}
 	for (int d = 0; d < sys.numLoads; d++) {
-		expr -= sys.demDA_bids[d].price * soln.x.RTdem[d] + sys.demRT_bids[d].priceP * soln.x.RTetaDemM[d] - sys.demRT_bids[d].priceM * soln.x.RTetaDemP[d];
+		alpha -= sys.demDA_bids[d].price * soln.x.RTdem[d] + sys.demRT_bids[d].priceP * soln.x.RTetaDemM[d] - sys.demRT_bids[d].priceM * soln.x.RTetaDemP[d];
 	}
 
-	double alpha = expr * sys.scenarios[scen].probability;
-	return alpha;
+	return alpha * sys.scenarios[scen].probability;
 
 }// END calculateAlpha()
 
@@ -180,25 +182,25 @@ bool incumbentUpdate(double gamma, masterType &master, int current_it){
 
 	tempCandid = minCutHeight(master, master.candidNa, current_it);
 	tempIncumb = minCutHeight(master, master.incumbNa, current_it);
-	x1 = minCutHeight(master, master.candidNa, current_it - 1); //*****************************************************************
-	x2 = minCutHeight(master, master.incumbNa, current_it - 1); //*****************************************************************
-	//tempCandid = min(master.candidEst, cutHeight(master.cuts[current_it], master.candidNa));
-	//tempIncumb = min(master.incumbEst, cutHeight(master.cuts[current_it], master.incumbNa));
+	//x1 = minCutHeight(master, master.candidNa, current_it - 1); //*****************************************************************
+	//x2 = minCutHeight(master, master.incumbNa, current_it - 1); //*****************************************************************
+	tempCandid = min(master.candidEst, cutHeight(master.cuts[current_it], master.candidNa));
+	tempIncumb = min(master.incumbEst, cutHeight(master.cuts[current_it], master.incumbNa));
 
 #if defined (ALG_CHECK)
 
-	vector<double> x = meanDual(master.candidNa);
+	/*vector<double> x = meanDual(master.candidNa);
 	for (int i = 0; i < master.candidNa[0].size(); i++)
 	{
 		cout << " " << x[i];
 	}
-	cout << endl;
+	cout << endl;*/
 
 	cout << "Incumbent = " << master.incumbEst << "\tCandidate = " << master.candidEst << ",\tIncumbent Temp" << tempIncumb << ",\tCandidate Temp" << tempCandid << endl;
 #endif
 
-	/*if (tempCandid - tempIncumb >= gamma * (master.candidEst - master.incumbEst)) {*/
-	if (tempCandid - tempIncumb >= gamma * (x1 - x2)) { //*****************************************************************
+	if (tempCandid - tempIncumb >= gamma * (master.candidEst - master.incumbEst)) {
+	//if (tempCandid - tempIncumb >= gamma * (x1 - x2)) { //*****************************************************************
 		master.incumbCut = current_it;
 		master.incumbEst = tempCandid;
 		//master.incumbEst = minCutHeight(master, master.candidNa);
@@ -217,9 +219,9 @@ bool incumbentUpdate(double gamma, masterType &master, int current_it){
 }// END incumbentUpdate()
 
 /* function nu */
-void computeIncumbent(vector<vector<double>> candidNa, vector<vector<double>> &incumbNa) {
+void computeIncumbent(vector<vector<double>> candidNa, vector<vector<double>> &incumbNa, PowerSystem sys) {
 
-	vector<double> mean = meanDual(candidNa);
+	vector<double> mean = meanDual(candidNa, sys);
 
 	for (int s = 0; s < candidNa.size(); s++) {
 
@@ -231,15 +233,14 @@ void computeIncumbent(vector<vector<double>> candidNa, vector<vector<double>> &i
 }// END xiBar()
 
 /* calculate the mean scenario duals */
-vector<double> meanDual(vector<vector<double>> dual) {
+vector<double> meanDual(vector<vector<double>> vec, PowerSystem sys) {
 
-	vector<double> mean(dual[0].size());
+	vector<double> mean(vec[0].size());
 	for (int i = 0; i < mean.size(); i++) { // loop through the dual variables
 		mean[i] = 0;
-		for (int s = 0; s < dual.size(); s++) { // loop through the scenarios
-			mean[i] += dual[s][i];
+		for (int s = 0; s < vec.size(); s++) { // loop through the scenarios
+			mean[i] += vec[s][i] * sys.scenarios[s].probability;
 		}
-		mean[i] = mean[i] / dual.size();
 		cout << "mean " << mean[i] << endl;
 	}
 	return mean;
