@@ -168,7 +168,7 @@ void updateMasterObjective(PowerSystem sys, masterType::MasterProblem &M, double
 void outOfSampleAlg(PowerSystem sys, string inputDir, ofstream &output_file, double incumbent_deviation, double dual_deviation);
 double calculateAlpha(PowerSystem sys, solution soln, int scen);
 void calculateBeta(vector<double> &beeta, PowerSystem sys, solution soln, int scen);
-double minCutHeight(masterType M, vector<vector<double>> naDuals, int k);
+double minCutHeight(masterType M, vector<vector<double>> naDuals);
 double cutHeight(oneCut cut, vector<vector<double>> naDuals);
 bool incumbentUpdate(double gamma, masterType &master, int k);
 void computeIncumbent(vector<vector<double>> candidNa, vector<vector<double>> &incumbNa, PowerSystem sys);

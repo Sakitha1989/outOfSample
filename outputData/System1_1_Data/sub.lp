@@ -2,16 +2,15 @@
 \Problem name: IloCplex
 
 Minimize
- obj: 0.123805366928743 DAgen(1)#0 + 0.388915518648267 DAgen(2)#1
-      - 0.860493025458171 DAgen(3)#2 + 10 RTgen(1)#3 + RTgen(2)#4
-      + 20 RTgen(3)#5 + 1.10000002384186 RTetaGenP(1)#6
-      + 0.109999999403954 RTetaGenP(2)#7 + 2.09999990463257 RTetaGenP(3)#8
-      - RTetaGenM(1)#9 - 0.100000001490116 RTetaGenM(2)#10 - 2 RTetaGenM(3)#11
-      - 0.347772139881161 DAdem(1)#12 - 1000 RTdem(1)#13
+ obj: 0.454853091838823 DAgen(2)#1 - 0.827532077178339 DAgen(3)#2
+      + 10 RTgen(1)#3 + RTgen(2)#4 + 20 RTgen(3)#5
+      + 1.10000002384186 RTetaGenP(1)#6 + 0.109999999403954 RTetaGenP(2)#7
+      + 2.09999990463257 RTetaGenP(3)#8 - RTetaGenM(1)#9
+      - 0.100000001490116 RTetaGenM(2)#10 - 2 RTetaGenM(3)#11
+      - 0.372678985339517 DAdem(1)#12 - 1000 RTdem(1)#13
       + 0.00100000004749745 RTetaDemP(1)#14
       - 0.0000999999974737875 RTetaDemM(1)#15
-      + 0.123805366928743 DAflow(1,2)#16 - 0.860493025458171 DAflow(3,2)#17
-      - 0.00123805366928743 DAtheta(2)#21 - 0.00984298392386914 DAtheta(3)#22
+      - 0.827532077178339 DAflow(3,2)#17 - 0.00827532077178341 DAtheta(3)#22
 Subject To
  DAflowBalance(1)#0:       DAgen(1)#0 - DAflow(1,2)#16  = 0
  DAflowBalance(2)#1:       DAgen(2)#1 - DAdem(1)#12 + DAflow(1,2)#16

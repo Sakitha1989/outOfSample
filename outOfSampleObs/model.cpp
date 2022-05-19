@@ -147,7 +147,7 @@ bool masterType::MasterProblem::solve() {
 		cplex.solve();
 
 		int status = cplex.getStatus();
-		if (status == IloAlgorithm::Optimal) { // CPX_STAT_OPTIMAL
+		if (status != IloAlgorithm::Optimal) { // CPX_STAT_OPTIMAL
 			env.out() << "Solution status = " << cplex.getCplexStatus() << endl;
 			env.out() << "Solution value  = " << cplex.getObjValue() << endl;
 		}

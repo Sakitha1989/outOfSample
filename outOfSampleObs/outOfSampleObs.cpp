@@ -36,7 +36,7 @@ void outOfSampleAlg(PowerSystem sys, string inputDir, ofstream &output_file, dou
 
 		oneCut currentCut(sys, numSVvariables);
 
-		double x = 0;
+		//double x = 0;
 
 		for (int s = 0; s < sys.numScenarios; s++) {
 
@@ -48,7 +48,7 @@ void outOfSampleAlg(PowerSystem sys, string inputDir, ofstream &output_file, dou
 			/* solve the model and obtain solutions */
 			subproblemModel.solve();
 			soln = getSolution(subproblemModel, sys);
-			x += sys.scenarios[s].probability * soln.obj;
+			//x += sys.scenarios[s].probability * soln.obj;
 
 			currentCut.alpha += calculateAlpha(sys, soln, s);
 			calculateBeta(currentCut.beta[s], sys, soln, s);
@@ -57,7 +57,7 @@ void outOfSampleAlg(PowerSystem sys, string inputDir, ofstream &output_file, dou
 #if defined (ALG_CHECK)
 		cout << "Iteration-" << k << "::" << endl;
 
-		cout << "Obj: " << x << endl;
+		/*cout << "Obj: " << x << endl;
 		x = 0;
 
 		for (int s = 0; s < sys.numScenarios; s++) {
@@ -68,7 +68,7 @@ void outOfSampleAlg(PowerSystem sys, string inputDir, ofstream &output_file, dou
 
 		x += currentCut.alpha;
 
-		cout << "Cut: " << x << endl;
+		cout << "Cut: " << x << endl;*/
 #else
 		if (k % 10 == 0)
 		{
@@ -82,7 +82,7 @@ void outOfSampleAlg(PowerSystem sys, string inputDir, ofstream &output_file, dou
 
 		addMasterCut(master, sys, currentCut);
 		
-		if (k > 0){
+		if (k >= 0){
 			incumbUpdate = incumbentUpdate(incumbent_deviation, master, k);
 		}
 		
@@ -141,13 +141,12 @@ void calculateBeta(vector<double> &beta, PowerSystem sys, solution soln, int sce
 } // END calculateBeeta()
 
 /* Minimum cut height calculation */
-double minCutHeight(masterType M, vector<vector<double>> naDuals, int k) { //*****************************************************************
+double minCutHeight(masterType M, vector<vector<double>> naDuals) {
 
 	double incumbent = IloInfinity;
 	double temp;
 
-	/*for (int i = 0; i < M.cuts.size(); i++) {*/
-	for (int i = 0; i < k; i++) { //*****************************************************************
+	for (int i = 0; i < M.cuts.size(); i++) {
 		temp = cutHeight(M.cuts[i], naDuals);
 
 		if (temp < incumbent){			//minimum
@@ -165,7 +164,7 @@ double cutHeight(oneCut cut, vector<vector<double>> naDuals) {
 
 	for (int s = 0; s < cut.beta.size(); s++) {			// loop through the scenarios
 		for (int n = 0; n < cut.beta[s].size(); n++) {	// loop through the dual variables
-			height += cut.beta[s][n] * naDuals[s][n];
+			height -= cut.beta[s][n] * naDuals[s][n];
 		}
 	}
 
@@ -179,14 +178,12 @@ bool incumbentUpdate(double gamma, masterType &master, int current_it){
 	double tempCandid;
 	double tempIncumb;
 
-	tempCandid = minCutHeight(master, master.candidNa, current_it);
-	tempIncumb = minCutHeight(master, master.incumbNa, current_it);
-	//tempCandid = min(master.candidEst, cutHeight(master.cuts[current_it], master.candidNa));
-	//tempIncumb = min(master.incumbEst, cutHeight(master.cuts[current_it], master.incumbNa));
+	tempCandid = min(master.candidEst, cutHeight(master.cuts[current_it], master.candidNa));
+	tempIncumb = min(master.incumbEst, cutHeight(master.cuts[current_it], master.incumbNa));
 
 #if defined (ALG_CHECK)
 
-	cout << "Incumbent = " << master.incumbEst << "\tCandidate = " << master.candidEst << ",\tIncumbent Temp" << tempIncumb << ",\tCandidate Temp" << tempCandid << endl;
+	cout << "Incumbent = " << master.incumbEst << "\tCandidate = " << master.candidEst << ",\tIncumbent Temp" << tempIncumb << ",\tCandidate Temp" << tempCandid;
 #endif
 
 	if (tempCandid - tempIncumb >= gamma * (master.candidEst - master.incumbEst)) {
@@ -203,6 +200,7 @@ bool incumbentUpdate(double gamma, masterType &master, int current_it){
 	else {
 		master.incumbEst = tempIncumb;
 	}
+	cout << endl;
 
 	return incumbUpdate;
 }// END incumbentUpdate()
