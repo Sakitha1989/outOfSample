@@ -12,8 +12,8 @@
 /* Algorithm */
 void outOfSampleAlg(PowerSystem sys, string inputDir, ofstream &output_file, double incumbent_deviation, double dual_deviation) {
 
-	int numSVvariables = sys.numGenerators + sys.numLoads;
 	bool incumbUpdate = false;
+	int numSVvariables = sys.numGenerators + sys.numLoads;
 #if defined (FULL_NA)
 	numSVvariables += sys.numLines + sys.numBuses;
 #endif
@@ -58,13 +58,15 @@ void outOfSampleAlg(PowerSystem sys, string inputDir, ofstream &output_file, dou
 		cout << "Iteration-" << k << "::" << endl;
 
 		cout << "Obj: " << x << endl;
-		x = currentCut.alpha;
+		x = 0;
 
 		for (int s = 0; s < sys.numScenarios; s++) {
 			for (int i = 0; i < numSVvariables; i++) {
 				x -= currentCut.beta[s][i] * master.candidNa[s][i];
 			}
 		}
+
+		x += currentCut.alpha;
 
 		cout << "Cut: " << x << endl;
 #else
@@ -93,8 +95,6 @@ void outOfSampleAlg(PowerSystem sys, string inputDir, ofstream &output_file, dou
 
 		master.prob.solve();
 		masterGetSolution(master, sys);
-
-		meanDual(master.candidNa, sys);
 
 		k++;
 	}
@@ -178,29 +178,18 @@ bool incumbentUpdate(double gamma, masterType &master, int current_it){
 	bool incumbUpdate = false;
 	double tempCandid;
 	double tempIncumb;
-	double x1, x2; //*****************************************************************
 
 	tempCandid = minCutHeight(master, master.candidNa, current_it);
 	tempIncumb = minCutHeight(master, master.incumbNa, current_it);
-	//x1 = minCutHeight(master, master.candidNa, current_it - 1); //*****************************************************************
-	//x2 = minCutHeight(master, master.incumbNa, current_it - 1); //*****************************************************************
-	tempCandid = min(master.candidEst, cutHeight(master.cuts[current_it], master.candidNa));
-	tempIncumb = min(master.incumbEst, cutHeight(master.cuts[current_it], master.incumbNa));
+	//tempCandid = min(master.candidEst, cutHeight(master.cuts[current_it], master.candidNa));
+	//tempIncumb = min(master.incumbEst, cutHeight(master.cuts[current_it], master.incumbNa));
 
 #if defined (ALG_CHECK)
-
-	/*vector<double> x = meanDual(master.candidNa);
-	for (int i = 0; i < master.candidNa[0].size(); i++)
-	{
-		cout << " " << x[i];
-	}
-	cout << endl;*/
 
 	cout << "Incumbent = " << master.incumbEst << "\tCandidate = " << master.candidEst << ",\tIncumbent Temp" << tempIncumb << ",\tCandidate Temp" << tempCandid << endl;
 #endif
 
 	if (tempCandid - tempIncumb >= gamma * (master.candidEst - master.incumbEst)) {
-	//if (tempCandid - tempIncumb >= gamma * (x1 - x2)) { //*****************************************************************
 		master.incumbCut = current_it;
 		master.incumbEst = tempCandid;
 		//master.incumbEst = minCutHeight(master, master.candidNa);

@@ -222,6 +222,20 @@ void addConstraints(PowerSystem sys, ClearingModel &M) {
 		M.genNegative.add(IloRange(M.env, -IloInfinity, M.RTetaGenM[g] - M.RTgen[g] + M.DAgen[g], 0, elemName_extra));
 		M.model.add(IloRange(M.env, -IloInfinity, M.RTetaGenM[g] - M.RTgen[g] + M.DAgen[g], 0, elemName_extra));
 	}
+
+	M.demPositive = IloRangeArray(M.env, sys.numLoads);
+	M.demNegative = IloRangeArray(M.env, sys.numLoads);
+	for (int d = 0; d < sys.numLoads; d++) {
+
+		sprintf_s(elemName, "demPositive[%d]", sys.loads[d].id);
+		sprintf_s(elemName_extra, "demNegative[%d]", sys.loads[d].id);
+
+		M.demPositive.add(IloRange(M.env, -IloInfinity, -M.RTetaDemP[d] + M.RTdem[d] - M.DAdem[d], 0, elemName));
+		M.model.add(IloRange(M.env, -IloInfinity, -M.RTetaDemP[d] + M.RTdem[d] - M.DAdem[d], 0, elemName));
+
+		M.genNegative.add(IloRange(M.env, -IloInfinity, M.RTetaDemM[d] - M.RTdem[d] + M.DAdem[d], 0, elemName_extra));
+		M.model.add(IloRange(M.env, -IloInfinity, M.RTetaDemM[d] - M.RTdem[d] + M.DAdem[d], 0, elemName_extra));
+	}
 	
 
 	/* Inflexible generators */
@@ -255,7 +269,8 @@ void detObjective(PowerSystem sys, ClearingModel &M, vector<double> naDuals) {
 			it++;
 		}
 		if (it < sys.genDA_bids.size()) {
-			dayAheadCost -= naDuals[it] * M.DAgen[it];
+			
+			dayAheadCost -= naDuals[it] * M.DAgen[it]; 
 		}
 	}
 	for (int d = 0; d < sys.numLoads; d++) {
@@ -267,6 +282,7 @@ void detObjective(PowerSystem sys, ClearingModel &M, vector<double> naDuals) {
 			it++;
 		}
 		if (it < sys.demDA_bids.size()) {
+			
 			dayAheadCost -= naDuals[sys.numGenerators + it] * M.DAdem[it];
 		}
 	}
@@ -292,6 +308,7 @@ void stocObjective(PowerSystem sys, ClearingModel &M) {
 			it++;
 		}
 		if (it < sys.genDA_bids.size()) {
+			
 			realTimeCost += sys.genDA_bids[it].price * M.RTgen[g] + sys.genRT_bids[it].priceP * M.RTetaGenP[g] - sys.genRT_bids[it].priceM * M.RTetaGenM[g];
 		}
 	}
@@ -308,7 +325,7 @@ void stocObjective(PowerSystem sys, ClearingModel &M) {
 		}
 
 		if (it < sys.demDA_bids.size()) {
-
+			
 			realTimeCost -= sys.demDA_bids[it].price * M.RTdem[d] + sys.demRT_bids[it].priceP * M.RTetaDemM[d] - sys.demRT_bids[it].priceM * M.RTetaDemP[d];
 		}
 	}
@@ -324,21 +341,21 @@ void updateSubproblem(PowerSystem sys, ClearingModel &M, vector<double> naDuals,
 	int offset = 0;
 
 	for (int i = 0; i < sys.numGenerators; i++){
-		M.obj.setLinearCoef(M.DAgen[i], naDuals[i]);
+		M.obj.setLinearCoef(M.DAgen[i], -naDuals[i]);
 	}
 	offset += sys.numGenerators;
 	for (int i = 0; i < sys.numLoads; i++) {
-		M.obj.setLinearCoef(M.DAdem[i], naDuals[offset + i]);
+		M.obj.setLinearCoef(M.DAdem[i], -naDuals[offset + i]);
 	}
 #if defined (FULL_NA)
 	offset += sys.numLoads;
-	for (int i = 0; i < sys.numBuses; i++) {
-		M.obj.setLinearCoef(M.DAtheta[i], naDuals[offset + i]);
-	}
-	offset += sys.numBuses;
 	for (int i = 0; i < sys.numLines; i++) {
-		M.obj.setLinearCoef(M.DAflow[i], naDuals[offset + i]);
+		M.obj.setLinearCoef(M.DAflow[i], -naDuals[offset + i]);
 	}
+	offset += sys.numLines;
+	for (int i = 0; i < sys.numBuses; i++) {
+		M.obj.setLinearCoef(M.DAtheta[i], -naDuals[offset + i]);
+	}	
 #endif
 
 	M.model.add(M.obj);

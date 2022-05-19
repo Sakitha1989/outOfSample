@@ -36,6 +36,8 @@ Subject To
  genNegative(2)#15:        DAgen(2)#1 - RTgen(2)#4 + RTetaGenM(2)#10 <= 0
  genPositive(3)#16:        - DAgen(3)#2 + RTgen(3)#5 - RTetaGenP(3)#8 <= 0
  genNegative(3)#17:        DAgen(3)#2 - RTgen(3)#5 + RTetaGenM(3)#11 <= 0
+ demPositive(1)#18:        - DAdem(1)#12 + RTdem(1)#13 - RTetaDemP(1)#14 <= 0
+ demNegative(1)#19:        DAdem(1)#12 - RTdem(1)#13 + RTetaDemM(1)#15 <= 0
 Bounds
  0 <= DAgen(1)#0 <= 70
  0 <= DAgen(2)#1 <= 60

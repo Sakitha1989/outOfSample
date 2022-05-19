@@ -44,11 +44,11 @@ void addMasterVariables(PowerSystem sys, masterType::MasterProblem &M) {
 		M.naDual[s] = IloNumVarArray(M.env, numVar);
 		for (int i = 0; i < M.naDual[s].getSize(); i++) {
 
-			sprintf_s(elemName, "naDual[%d][%d]", i, s+1);
+			sprintf_s(elemName, "naDual[%d][%d]", s, i);
 			M.naDual[s][i] = IloNumVar(M.env, -IloInfinity, IloInfinity, ILOFLOAT);
 			M.naDual[s][i].setName(elemName);
 		}
-		M.model.add(M.naDual[s][s]);
+		M.model.add(M.naDual[s]);
 	}
 
 }//END addMasterVariables()
