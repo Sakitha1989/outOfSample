@@ -198,7 +198,7 @@ bool incumbentUpdate(double gamma, masterType &master, int current_it){
 		fflush(stdout);
 	}
 	else {
-		master.incumbEst = tempIncumb;
+		master.incumbEst = tempIncumb; //******************************************************************************** why do we need to update incumbent if the condition fails?
 	}
 	cout << endl;
 
